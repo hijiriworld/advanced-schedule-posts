@@ -3,49 +3,50 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.0.0
+Version: 1.1.0
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 */
 
-/* Define */
+/*
+* Define
+*/
 
 define( 'HASP_URL', plugins_url('', __FILE__) );
-
 define( 'HASP_DIR', plugin_dir_path(__FILE__) );
-
 load_plugin_textdomain( 'hasp', false, basename(dirname(__FILE__)).'/lang' );
 
-/* Method */
+/*
+* Class & Methods
+*/
 
 $cptg = new Hasp;
-
 class Hasp
 {
 	function __construct()
 	{
-		// to publish - save expire clear overwrite
-		add_action( 'new_to_publish', array( $this, 'save_expire_clear_overwrite' ) );
-		add_action( 'publish_to_publish', array( $this, 'save_expire_clear_overwrite' ) );
-		add_action( 'pending_to_publish', array( $this, 'save_expire_clear_overwrite' ) );
-		add_action( 'draft_to_publish', array( $this, 'save_expire_clear_overwrite' ) );
-		add_action( 'future_to_publish', array( $this, 'save_expire_clear_overwrite' ), 100 );
-		add_action( 'private_to_publish', array( $this, 'save_expire_clear_overwrite' ) );
-		add_action( 'inherit_to_publish', array( $this, 'save_expire_clear_overwrite' ) );
+		// to publish - save expire unsave overwrite
+		add_action( 'new_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'publish_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'pending_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'draft_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'future_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'private_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'inherit_to_publish', array( $this, 'action_to_publish' ) );
 		
 		// to future - save expire save overwrite
-		add_action( 'new_to_future', array( $this, 'save_expire_save_overwrite' ) );
-		add_action( 'publish_to_future', array( $this, 'save_expire_save_overwrite' ) );
-		add_action( 'pending_to_future', array( $this, 'save_expire_save_overwrite' ) );
-		add_action( 'draft_to_future', array( $this, 'save_expire_save_overwrite' ) );
-		add_action( 'future_to_future', array( $this, 'save_expire_save_overwrite' ) );
-		add_action( 'private_to_future', array( $this, 'save_expire_save_overwrite' ) );
-		add_action( 'inherit_to_future', array( $this, 'save_expire_save_overwrite' ) );
+		add_action( 'new_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'publish_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'pending_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'draft_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'future_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'private_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'inherit_to_future', array( $this, 'action_to_future' ) );
 		
-		// to trash - clear expire clear overwrite
-		add_action( 'trashed_post', array( $this, 'clear_expire_clear_overwrite' ) );	
+		// to trash - unsave expire unsave overwrite
+		add_action( 'trashed_post', array( $this, 'action_to_trash' ) );	
 		
 		// admin_init
 		add_action( 'add_meta_boxes', array( $this, 'hasp_add_meta_box' ) );
@@ -54,9 +55,14 @@ class Hasp
 		
 		// do
 		add_action( 'init', array( $this, 'do_expire' ) );
-		add_action( 'publish_future_post', array( $this, 'do_overwrite' ), 1 );
+		add_action( 'init', array( $this, 'do_overwrite' ) );
 	}
-
+	
+	
+	/*
+	* Setting Method
+	*/
+	
 	function hasp_add_meta_box()
 	{
 		
@@ -93,6 +99,8 @@ class Hasp
 			WHERE meta_key = 'hasp_overwrite_post_id'
 		";
 		$future_overwrite_posts = $wpdb->get_row( $sql, ARRAY_N );
+		
+		if ( empty( $future_overwrite_posts ) ) return $publish_posts;
 		
 		foreach( $publish_posts as $key => $publish_post ) {
 			if ( in_array( $publish_post->ID, $future_overwrite_posts ) ) {
@@ -148,54 +156,57 @@ class Hasp
 			}
 		}
 	}
+
+	/*
+	* Action Method
+	*/
 	
-	function save_expire_save_overwrite( $post )
-	{	
-		$post_id = $post->ID;
-		$this->save_expire( $post_id );
-		$this->save_overwrite( $post_id );
-	}
-	function save_expire_clear_overwrite( $post )
+	function action_to_publish( $post )
 	{
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return false;
+		if ( !isset( $_POST['action'] ) ) return false;
+		
 		$post_id = $post->ID;
+		
 		$this->save_expire( $post_id );
 		$this->clear_overwrite( $post_id );
 	}
-	function clear_expire_clear_overwrite( $post_id )
+	
+	function action_to_future( $post )
+	{
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return false;
+		if ( !isset( $_POST['action'] ) ) return false;
+		
+		$post_id = $post->ID;
+		
+		$this->save_expire( $post_id );
+		$this->save_overwrite( $post_id );
+	}
+	
+	function action_to_trash( $post_id )
 	{
 		$this->clear_expire( $post_id );
 		$this->clear_overwrite( $post_id );
 	}
-	
+
 	function save_expire( $post_id )
 	{
-		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-			return $post_id;
-		
-		if( isset( $_POST['action'] ) ) {
-		
-			$hasp_expire_enable = isset( $_POST['hasp_expire_enable'] ) ? 1 : 0;
-			$hasp_expire_date = isset( $_POST['hasp_expire_date'] ) && $_POST['hasp_expire_date'] ? $_POST['hasp_expire_date'].':00' : '';
+		$hasp_expire_enable = isset( $_POST['hasp_expire_enable'] ) ? 1 : 0;
+		$hasp_expire_date = isset( $_POST['hasp_expire_date'] ) && $_POST['hasp_expire_date'] ? $_POST['hasp_expire_date'].':00' : '';
 			
-			update_post_meta( $post_id, 'hasp_expire_enable', $hasp_expire_enable );
-			update_post_meta( $post_id, 'hasp_expire_date', $hasp_expire_date );
-		}
+		update_post_meta( $post_id, 'hasp_expire_enable', $hasp_expire_enable );
+		update_post_meta( $post_id, 'hasp_expire_date', $hasp_expire_date );
+		
 		return $post_id;
 	}
 	function save_overwrite( $post_id )
 	{
-		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
-			return $post_id;
+		$hasp_overwrite_enable = isset( $_POST['hasp_overwrite_enable'] ) ? 1 : 0;
+		$hasp_overwrite_post_id = $_POST['hasp_overwrite_post_id'];
 		
-		// 擬似クーロンで動かないようにする
-		if( isset( $_POST['action'] ) ) {
+		update_post_meta( $post_id, 'hasp_overwrite_enable', $hasp_overwrite_enable );
+		update_post_meta( $post_id, 'hasp_overwrite_post_id', $hasp_overwrite_post_id );
 		
-			$hasp_overwrite_enable = isset( $_POST['hasp_overwrite_enable'] ) ? 1 : 0;
-			$hasp_overwrite_post_id = $_POST['hasp_overwrite_post_id'];
-			
-			update_post_meta( $post_id, 'hasp_overwrite_enable', $hasp_overwrite_enable );
-			update_post_meta( $post_id, 'hasp_overwrite_post_id', $hasp_overwrite_post_id );
-		}
 		return $post_id;
 	}
 	function clear_expire( $post_id )
@@ -209,7 +220,12 @@ class Hasp
 		update_post_meta( $post_id, 'hasp_overwrite_enable', '' );
 		update_post_meta( $post_id, 'hasp_overwrite_post_id', '' );	
 	}
+	
 
+	/*
+	* Run Method
+	*/
+	
 	function do_expire()
 	{
 		global $wpdb;
@@ -225,42 +241,60 @@ class Hasp
 		";
 		$result = $wpdb->get_results( $sql );
 		
-		if ( !empty( $result ) ) {
-			foreach ( $result as $post ) {
-				
-				$post_id = $post->ID;
-				
-				// publish → draft
-				$overwrite_post = array();
-				$overwrite_post['ID'] = $post_id;
-				$overwrite_post['post_status'] = 'draft';
-				wp_update_post( $overwrite_post );
-				
-				$this->clear_expire( $post_id );
-			}
+		if ( empty( $result ) ) return false;
+		
+		foreach ( $result as $post ) {
+			
+			$post_id = $post->ID;
+			
+			// publish → draft
+			$overwrite_post = array();
+			$overwrite_post['ID'] = $post_id;
+			$overwrite_post['post_status'] = 'draft';
+			wp_update_post( $overwrite_post );
+			
+			$this->clear_expire( $post_id );
 		}
 	}
-	function do_overwrite( $post_id )
+	function do_overwrite()
 	{
-		$hasp_overwrite_enable  = get_post_meta( $post_id, 'hasp_overwrite_enable', true );
-		$hasp_overwrite_post_id = get_post_meta( $post_id, 'hasp_overwrite_post_id', true );
+		global $wpdb;
 		
-		if ( $hasp_overwrite_enable && $hasp_overwrite_post_id ) {
-
-			$overwrite_post_name = get_post_field( 'post_name', $hasp_overwrite_post_id );
-
-			$from_overwrite_post = array();
-			$from_overwrite_post['ID'] = $hasp_overwrite_post_id;
-			$from_overwrite_post['post_status'] = 'draft';
-			$from_overwrite_post['post_name'] = $overwrite_post_name. '-'. date( 'Ymd' );
-			wp_update_post( $from_overwrite_post );
+		$sql = "SELECT posts.ID 
+			FROM $wpdb->posts AS posts 
+			INNER JOIN $wpdb->postmeta AS postmeta1 ON ( posts.ID = postmeta1.post_id ) 
+			WHERE posts.post_status = 'publish' 
+			AND ( postmeta1.meta_key = 'hasp_overwrite_enable' AND postmeta1.meta_value = '1' ) 
+			AND posts.post_date <= '".current_time( 'mysql' )."'
+			GROUP BY posts.ID
+		";
+		$result = $wpdb->get_results( $sql );
+		
+		if ( empty( $result ) ) return false;
+		
+		foreach( $result as $post ) {
+			$post_id = $post->ID;
+		
+			$hasp_overwrite_enable  = get_post_meta( $post_id, 'hasp_overwrite_enable', true );
+			$hasp_overwrite_post_id = get_post_meta( $post_id, 'hasp_overwrite_post_id', true );
 			
-			$to_overwrite_post = array();
-			$to_overwrite_post['ID'] = $post_id;
-			$to_overwrite_post['post_name'] = $overwrite_post_name;
-			wp_update_post( $to_overwrite_post );
-			
-			$this->clear_overwrite( $post_id );
+			if ( $hasp_overwrite_enable && $hasp_overwrite_post_id ) {
+	
+				$overwrite_post_name = get_post_field( 'post_name', $hasp_overwrite_post_id );
+	
+				$from_overwrite_post = array();
+				$from_overwrite_post['ID'] = $hasp_overwrite_post_id;
+				$from_overwrite_post['post_status'] = 'draft';
+				$from_overwrite_post['post_name'] = $overwrite_post_name. '-'. date( 'Ymd' );
+				wp_update_post( $from_overwrite_post );
+				
+				$to_overwrite_post = array();
+				$to_overwrite_post['ID'] = $post_id;
+				$to_overwrite_post['post_name'] = $overwrite_post_name;
+				wp_update_post( $to_overwrite_post );
+				
+				$this->clear_overwrite( $post_id );
+			}
 		}
 	}
 }
