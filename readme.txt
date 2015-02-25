@@ -34,6 +34,10 @@ The slug of the old post(B) is changed to what added suffix(Ymd).
 
 == Changelog ==
 
+= 1.1.1 =
+
+Do action improved.( !is_admin() )
+
 = 1.1.0 =
 
 Overwrite function was changed from 'wp-cron.php' into 'init action hook'.
