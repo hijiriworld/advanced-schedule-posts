@@ -13,12 +13,16 @@ Allows you to set datetime of expiration and to set schedule which overwrites th
 
 Advanced Schedule Posts plugin allows the user to set datetime of expiration and to set schedule which overwrites the another post.
 
-Datetime of Expiration:
+<a href="https://github.com/hijiriworld/advanced-schedule-posts">This Plugin published on GitHub.</a>
+
+= Datetime of Expiration =
+
 When it becomes the datetime of expiration, the post is changed to draft.
 
-Overwrite the another post:
-When the scheduled post(A) is published by wp cron, the new post(A) overwrite the another post(B) and the old post(B) is changed to draft.
-The slug of the new post(A) is changed to the slug of the old post(B).
+= Overwrite the another post =
+
+When the scheduled post(A) is published by wp cron, the new post(A) overwrite the another post(B) and the old post(B) is changed to draft.<br>
+The slug of the new post(A) is changed to the slug of the old post(B).<br>
 The slug of the old post(B) is changed to what added suffix(Ymd).
 
 == Installation ==
@@ -36,12 +40,12 @@ The slug of the old post(B) is changed to what added suffix(Ymd).
 
 = 1.1.1 =
 
-Do action improved.( !is_admin() )
+* Do action improved.( !is_admin() )
 
 = 1.1.0 =
 
-Overwrite function was changed from 'wp-cron.php' into 'init action hook'.
+* Overwrite function was changed from 'wp-cron.php' into 'init action hook'.
 
 = 1.0.0 =
 
-Initial Release.
+* Initial Release.
