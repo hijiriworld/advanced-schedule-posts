@@ -1,12 +1,14 @@
 # Advanced Schedule Posts
 
+<a href="http://hijiriworld.com/web/plugins/advanced-schedule-posts/">Advanced Schedule Posts</a> is WordPress Plugin that allows to you to set the datetime of expiration and the schedule which overwrites the another post.
+
 ## Description
 
-Advanced Schedule Posts plugin allows the user to set datetime of expiration and to set schedule which overwrites the another post.
+Allows to you to set the datetime of expiration and the schedule which overwrites the another post.
 
 **Datetime of Expiration**
 
-When it becomes the datetime of expiration, the post is changed to draft.
+When it becomes the datetime of expiration, the status of post is changed to 'draft'.
 
 **Overwrite the another post**
 
@@ -16,25 +18,14 @@ The slug of the old post(B) is changed to what added suffix(Ymd).
 
 ## Installation
 
-1. Upload 'advanced-schedule-posts' folder to the `/wp-content/plugins/` directory
-2. Activate the plugin through the 'Plugins' menu in WordPress
+1. Upload 'advanced-schedule-posts' folder to the `/wp-content/plugins/` directory.
+2. Activate the plugin through the 'Plugins' menu in WordPress.
 
-## Screenshots
+## Documentation
 
-1. setting - datetime of expiration
-2. setting - overwrite the another post
-3. list
+* <a href="http://hijiriworld.com/web/plugins/advanced-schedule-posts/">Plugin URI</a>
+* <a href="https://wordpress.org/plugins/advanced-schedule-posts/">WordPress Plugin Directory URI</a>
 
-## Changelog
+## License
 
-**1.1.1**
-
-* Do action improved.( !is_admin() )
-
-**1.1.0**
-
-* Overwrite function was changed from 'wp-cron.php' into 'init action hook'.
-
-**1.0.0**
-
-* Initial Release.
+GPLv2 or later
