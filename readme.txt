@@ -3,7 +3,7 @@ Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
 Tested up to: 4.1.0
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,6 +37,10 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 3. List
 
 == Changelog ==
+
+= 1.1.2 =
+
+* when overwrite the another post, it change the `post_id` that is included in the menu objects.
 
 = 1.1.1 =
 
