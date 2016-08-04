@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.1.2
+Version: 1.1.3
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -18,6 +18,34 @@ define( 'HASP_URL', plugins_url('', __FILE__) );
 define( 'HASP_DIR', plugin_dir_path(__FILE__) );
 load_plugin_textdomain( 'hasp', false, basename(dirname(__FILE__)).'/lang' );
 
+/**
+* Deactivation hook
+*/
+
+register_deactivation_hook( __FILE__, 'hasp_deactivation' );
+function hasp_deactivation()
+{
+	global $wpdb;
+	if ( function_exists( 'is_multisite' ) && is_multisite() ) {
+		if (is_network_admin()) {
+			$curr_blog = $wpdb->blogid;
+			$blogids = $wpdb->get_col( "SELECT blog_id FROM $wpdb->blogs" );
+			foreach( $blogids as $blog_id ) {
+				switch_to_blog( $blog_id );
+				delete_option( 'hasp_activation' );
+				delete_option( 'hasp_options' );
+			}
+			switch_to_blog( $curr_blog );
+		} else {
+			delete_option( 'hasp_activation' );
+			delete_option( 'hasp_options' );
+		}
+	} else {
+		delete_option( 'hasp_activation' );
+		delete_option( 'hasp_options' );
+	}
+}
+
 /*
 * Class & Methods
 */
@@ -27,6 +55,9 @@ class Hasp
 {
 	function __construct()
 	{
+		add_action( 'admin_menu', array( $this, 'admin_menu') );
+		add_action( 'admin_init', array( $this, 'update_options') );
+
 		// to publish - save expire unsave overwrite
 		add_action( 'new_to_publish', array( $this, 'action_to_publish' ) );
 		add_action( 'publish_to_publish', array( $this, 'action_to_publish' ) );
@@ -70,9 +101,16 @@ class Hasp
 	{
 		
 		if ( current_user_can( 'publish_posts' ) ) {
-			$post_types = get_post_types();
+//			$post_types = get_post_types();
+			$post_types = $this->get_hasp_options_objects();
 			foreach( $post_types as $post_type )
 			{
+				$obj = get_post_type_object( $post_type );
+				$public_value = $obj->public;
+				$show_ui_value = $obj->show_ui;
+				if (!$public_value || !$show_ui_value || 'attachment' == $post_type) {
+					continue;
+				}
 				add_meta_box(
 					'hasp_meta_box',
 					__( 'Advanced Schedule', 'hasp' ),
@@ -107,7 +145,7 @@ class Hasp
 		
 		foreach( $publish_posts as $key => $publish_post ) {
 			if ( in_array( $publish_post->ID, $future_overwrite_posts ) ) {
-				unset( $pulish_posts[$key] );
+				unset( $publish_posts[$key] );
 			}
 		}
 		
@@ -126,9 +164,12 @@ class Hasp
 	
 	function hasp_add_columns()
 	{
-		$post_types = get_post_types(array(
+/*
+	$post_types = get_post_types(array(
 			'public' => true,
 		));
+*/
+		$post_types = $this->get_hasp_options_objects();
 		foreach( $post_types as $post_type ) {
 			add_filter( 'manage_edit-'.$post_type.'_columns', array( $this, 'add_custom_posts_columns_name' ) );
 			if ( $post_type == 'page' ) {
@@ -304,6 +345,72 @@ class Hasp
 			}
 		}
 	}
+
+	/*
+	* Admin Setting
+	*/
+	
+	function admin_menu()
+	{
+		if ( !get_option( 'hasp_activation' ) ) $this->hasp_activation();
+		add_options_page( __( 'Advanced Schedule', 'hasp' ), __( 'Advanced Schedule', 'hasp' ), 'manage_options', 'hasp-settings', array( $this,'admin_page' ) );
+	}
+	
+	function admin_page()
+	{
+		require HASP_DIR.'admin/settings.php';
+	}
+	
+	/**
+	* Load Setting
+	*/
+	
+	function get_hasp_options_objects()
+	{
+		$hasp_options = get_option( 'hasp_options' ) ? get_option( 'hasp_options' ) : array();
+		$objects = isset( $hasp_options['objects'] ) && is_array( $hasp_options['objects'] ) ? $hasp_options['objects'] : array();
+		return $objects;
+	}
+
+	/**
+	* Update Setting
+	*/
+	
+	function update_options()
+	{
+		if ( !isset( $_POST['hasp_submit'] ) ) return false;
+
+		check_admin_referer( 'nonce_hasp' );
+
+		$input_options = array();
+		$input_options['objects'] = isset( $_POST['objects'] ) ? $_POST['objects'] : '';
+		update_option( 'hasp_options', $input_options );
+		wp_redirect( 'admin.php?page=hasp-settings&msg=update' );
+	}
+
+	/**
+	* Initial Setting
+	*/
+	
+	function hasp_activation()
+	{
+		$post_types = get_post_types();
+		foreach( $post_types as $post_type )
+		{
+			$obj = get_post_type_object( $post_type );
+			$public_value = $obj->public;
+			$show_ui_value = $obj->show_ui;
+			if (!$public_value || !$show_ui_value || 'attachment' == $post_type) {
+				continue;
+			}
+			$_objects[] = $post_type;
+		}
+		$input_options = array();
+		$input_options['objects'] = isset( $_objects ) ? $_objects : '';
+		add_option('hasp_options', $input_options, '', 'no');
+		add_option('hasp_activation', 1, '', 'no');
+	}
+
 }
 
 ?>

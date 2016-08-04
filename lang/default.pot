@@ -1,58 +1,79 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
-"POT-Creation-Date: 2014-12-24 20:26+0900\n"
-"PO-Revision-Date: 2014-12-24 20:27+0900\n"
+"POT-Creation-Date: 2016-08-04 11:31+0900\n"
+"PO-Revision-Date: 2016-08-04 11:34+0900\n"
 "Last-Translator: hijiri <hijiriworld@gmail.com>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: plugins/advanced-schedule-posts/advanced-schedule-posts.php:69
+#: advanced-schedule-posts/advanced-schedule-posts.php:116
+#: advanced-schedule-posts/advanced-schedule-posts.php:356
 msgid "Advanced Schedule"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/advanced-schedule-posts.php:132
+#: advanced-schedule-posts/advanced-schedule-posts.php:184
 msgid "Schedule"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/advanced-schedule-posts.php:144
+#: advanced-schedule-posts/advanced-schedule-posts.php:196
 msgid "Expired on:"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/advanced-schedule-posts.php:147
+#: advanced-schedule-posts/advanced-schedule-posts.php:199
 msgid "Overwrite:"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:15
+#: advanced-schedule-posts/admin/settings.php:12
+msgid "Advanced Schedule Posts Settings"
+msgstr ""
+
+#: advanced-schedule-posts/admin/settings.php:17
+msgid "Settings saved."
+msgstr ""
+
+#: advanced-schedule-posts/admin/settings.php:31
+msgid "Select Post Types"
+msgstr ""
+
+#: advanced-schedule-posts/admin/settings.php:53
+msgid "All Check"
+msgstr ""
+
+#: advanced-schedule-posts/admin/settings.php:56
+msgid "Update"
+msgstr ""
+
+#: advanced-schedule-posts/include/meta_box.php:15
 msgid "Datetime of expiration"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:19
+#: advanced-schedule-posts/include/meta_box.php:19
 msgid "Y-m-d H:i"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:20
+#: advanced-schedule-posts/include/meta_box.php:20
 msgid "Input datetime."
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:21
+#: advanced-schedule-posts/include/meta_box.php:21
 msgid "Input future datetime."
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:25
+#: advanced-schedule-posts/include/meta_box.php:25
 msgid "Overwrite the another post"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:30
+#: advanced-schedule-posts/include/meta_box.php:30
 msgid "Select"
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:35
+#: advanced-schedule-posts/include/meta_box.php:35
 msgid "Select the post."
 msgstr ""
 
-#: plugins/advanced-schedule-posts/include/meta_box.php:36
+#: advanced-schedule-posts/include/meta_box.php:36
 msgid "You can set schedule which overwrites the another post."
 msgstr ""
