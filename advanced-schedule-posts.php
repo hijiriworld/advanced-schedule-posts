@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.1.3
+Version: 1.1.4
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -77,12 +77,13 @@ class Hasp
 		add_action( 'inherit_to_future', array( $this, 'action_to_future' ) );
 		
 		// to trash - unsave expire unsave overwrite
-		add_action( 'trashed_post', array( $this, 'action_to_trash' ) );	
+		add_action( 'trashed_post', array( $this, 'action_to_trash' ) );
 		
 		// admin_init
 		add_action( 'add_meta_boxes', array( $this, 'hasp_add_meta_box' ) );
 		add_action( 'admin_init', array( $this, 'load_script_css' ) );
 		add_action( 'admin_init', array( $this, 'hasp_add_columns' ) );
+		add_action( 'quick_edit_custom_box', array($this, 'hasp_quick_edit_custom'), 10, 2);
 		
 		// do
 		if( !is_admin() )
@@ -152,6 +153,21 @@ class Hasp
 		return $publish_posts;
 	}
 
+	public function hasp_quick_edit_custom($column){
+		//Display our custom content on the quick-edit interface, no values can be pre-populated (all done in JavaScript)
+		$html = '';
+
+		//output hasp_expire_enable field 
+		if($column == 'hasp'){
+			$html .= '<input type="hidden" name="hasp_expire_enable" id="hasp_expire_enable" >';
+			$html .= '<input type="hidden" name="hasp_expire_date" id="hasp_expire_date" >';
+			$html .= '<input type="hidden" name="hasp_overwrite_enable" id="hasp_overwrite_enable" >';
+			$html .= '<input type="hidden" name="hasp_overwrite_post_id" id="hasp_overwrite_post_id" >';
+		}
+
+		echo $html;
+	}
+
 	function load_script_css() {
 		// JavaScript
 		wp_enqueue_script( 'jquery-ui-datepicker' );
@@ -194,9 +210,13 @@ class Hasp
 		
 			if( $hasp_expire_enable && $hasp_expire_date ) {
 				echo __( 'Expired on:', 'hasp' ).'<br>'.date( 'Y/m/d H:i', strtotime( $hasp_expire_date ) ).'<br>';
+				echo '<input type="hidden" id="hasp_expire_enable" value="' . $hasp_expire_enable . '">';
+				echo '<input type="hidden" id="hasp_expire_date" value="' . date( 'Y-m-d H:i', strtotime( $hasp_expire_date )) . '">';
 			}
 			if ( $hasp_overwrite_enable && $hasp_overwrite_post_id ) {
 				echo __( 'Overwrite:', 'hasp' ).'<br>'.get_the_title( $hasp_overwrite_post_id );
+				echo '<input type="hidden" id="hasp_overwrite_enable" value="' . $hasp_overwrite_enable . '">';
+				echo '<input type="hidden" id="hasp_overwrite_post_id" value="' . $hasp_overwrite_post_id . '">';
 			}
 		}
 	}

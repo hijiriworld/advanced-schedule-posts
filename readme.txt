@@ -3,7 +3,7 @@ Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
 Tested up to: 4.5.3
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,6 +38,10 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 4. Admin Setting
 
 == Changelog ==
+
+= 1.1.4 =
+
+* Bug Fix: Unsetting with Quick Edit.
 
 = 1.1.3 =
 
