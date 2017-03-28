@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.1.4
+Version: 1.1.4.1
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -172,7 +172,7 @@ class Hasp
 		// JavaScript
 		wp_enqueue_script( 'jquery-ui-datepicker' );
 		wp_enqueue_script( 'hasp-jquery-ui-timepicker-addon', HASP_URL.'/js/jquery-ui-timepicker-addon.js', array( 'jquery-ui-datepicker' ), '1.4.5', true );
-		wp_enqueue_script( 'hasp-js', HASP_URL.'/js/script.js', array( 'jquery' ), '1.0', true );
+		wp_enqueue_script( 'hasp-js', HASP_URL.'/js/script.js', array( 'jquery', 'inline-edit-post' ), false, true );
 		// CSS
 		wp_enqueue_style( 'jquery-ui-theme', '//ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.min.css', '', '1.11.2', 'all' );
 		wp_enqueue_style( 'hasp-css', HASP_URL.'/css/style.css', array(), null );
