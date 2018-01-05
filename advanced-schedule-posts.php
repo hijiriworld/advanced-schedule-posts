@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.1.4.1
+Version: 1.1.6
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -345,22 +345,22 @@ class Hasp
 			if ( $hasp_overwrite_enable && $hasp_overwrite_post_id ) {
 	
 				$overwrite_post_name = get_post_field( 'post_name', $hasp_overwrite_post_id );
-	
-				$from_overwrite_post = array();
-				$from_overwrite_post['ID'] = $hasp_overwrite_post_id;
-				$from_overwrite_post['post_status'] = 'draft';
-				$from_overwrite_post['post_name'] = $overwrite_post_name. '-'. date( 'Ymd' );
-				wp_update_post( $from_overwrite_post );
-				
-				$to_overwrite_post = array();
-				$to_overwrite_post['ID'] = $post_id;
-				$to_overwrite_post['post_name'] = $overwrite_post_name;
-				wp_update_post( $to_overwrite_post );
+
+				$from_overwrite_post_sql = "UPDATE $wpdb->posts SET post_status = 'draft',post_name = '{$overwrite_post_name}-". date( 'Ymd' ). "' WHERE ID = {$hasp_overwrite_post_id};";
+				$from_result = $wpdb->query( $from_overwrite_post_sql);
+
+				$to_overwrite_post_sql = "UPDATE $wpdb->posts SET post_name = '{$overwrite_post_name}' WHERE ID = {$post_id};";
+				$to_result = $wpdb->query( $to_overwrite_post_sql);
 				
 				$this->clear_overwrite( $post_id );
 
 				// for nav-menus
 				$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE meta_key = '_menu_item_object_id' AND meta_value = {$hasp_overwrite_post_id};";
+				$result = $wpdb->query( $sql );
+        
+				// for ACF Post Object Field
+				$post_type = get_post_type( $post_id );
+				$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE meta_key = '{$post_type}' AND meta_value = {$hasp_overwrite_post_id};";
 				$result = $wpdb->query( $sql );
 			}
 		}

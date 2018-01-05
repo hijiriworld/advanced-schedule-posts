@@ -3,7 +3,7 @@ Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
 Tested up to: 4.7.2
-Stable tag: 1.1.4.1
+Stable tag: 1.1.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,6 +38,14 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 4. Admin Setting
 
 == Changelog ==
+
+= 1.1.6 =
+
+* When overwrite the another post, it change the `post_id` that is included in the 'ACF Post Object Field'.
+
+= 1.1.5 =
+
+* Bug Fix: Improved Tag disappears in the editor.
 
 = 1.1.4.1 =
 
