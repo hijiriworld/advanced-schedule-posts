@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.1.6
+Version: 1.1.6.1
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -359,9 +359,14 @@ class Hasp
 				$result = $wpdb->query( $sql );
         
 				// for ACF Post Object Field
-				$post_type = get_post_type( $post_id );
-				$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE meta_key = '{$post_type}' AND meta_value = {$hasp_overwrite_post_id};";
-				$result = $wpdb->query( $sql );
+				$sql = "SELECT post_id, meta_key FROM $wpdb->postmeta WHERE meta_value = '{$hasp_overwrite_post_id}';";
+				$posts = $wpdb->get_results( $sql );
+				foreach( $posts as $post) {
+					if ( $this->hasp_record_check( $post->post_id, $post->meta_key ) ){
+						$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE post_id = {$post->post_id} AND meta_key = '{$post->meta_key}' AND meta_value = {$hasp_overwrite_post_id};";
+						$result = $wpdb->query( $sql );
+					}
+				}
 			}
 		}
 	}
@@ -430,7 +435,16 @@ class Hasp
 		add_option('hasp_options', $input_options, '', 'no');
 		add_option('hasp_activation', 1, '', 'no');
 	}
-
+	
+	/*
+	* Check ACF object record
+	*/
+	function hasp_record_check( $post_id, $meta_key )
+	{
+		global $wpdb;
+		$sql = "SELECT EXISTS (SELECT * FROM $wpdb->postmeta WHERE post_id = {$post_id} AND meta_key = '_{$meta_key}' AND meta_value LIKE 'field_%');";
+		return $wpdb->get_var( $sql );
+	}
+	
 }
-
 ?>
