@@ -39,6 +39,10 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 
 == Changelog ==
 
+= 1.1.6.1 =
+
+* Bug Fix: for v1.1.6.
+
 = 1.1.6 =
 
 * When overwrite the another post, it change the `post_id` that is included in the 'ACF Post Object Field'.

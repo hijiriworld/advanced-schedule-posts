@@ -7,8 +7,6 @@ $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : a
 
 <div class="wrap">
 
-<?php screen_icon( 'plugins' ); ?>
-
 <h2><?php _e( 'Advanced Schedule Posts Settings', 'hasp' ); ?></h2>
 
 <?php if ( isset($_GET['msg'] )) : ?>
@@ -55,7 +53,7 @@ $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : a
 <p class="submit">
 	<input type="submit" class="button-primary" name="hasp_submit" value="<?php _e( 'Update' ); ?>">
 </p>
-	
+
 </form>
 
 </div>
@@ -66,7 +64,7 @@ $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : a
 	$("#hasp_allcheck_objects").on('click', function(){
 		var items = $("#hasp_select_objects input");
 		if ( $(this).is(':checked') ) $(items).prop('checked', true);
-		else $(items).prop('checked', false);	
+		else $(items).prop('checked', false);
 	});
 
 })(jQuery)
