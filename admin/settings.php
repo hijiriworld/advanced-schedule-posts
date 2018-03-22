@@ -3,6 +3,20 @@
 $hasp_options = get_option( 'hasp_options' );
 $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : array();
 
+$hasp_activate_expire = array();
+$hasp_activate_overwrite = array();
+$hasp_activate_expire_setting = FALSE;
+$hasp_activate_overwrite_setting = FALSE;
+
+if(array_key_exists('activate_expire',$hasp_options)){
+	$hasp_activate_expire = $hasp_options['activate_expire'];
+	$hasp_activate_expire_setting = TRUE;
+}
+if(array_key_exists('activate_overwrite',$hasp_options)){
+	$hasp_activate_overwrite = $hasp_options['activate_overwrite'];
+	$hasp_activate_overwrite_setting = TRUE;
+}
+
 ?>
 
 <div class="wrap">
@@ -23,11 +37,18 @@ $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : a
 
 <div id="hasp_select_objects">
 
-<table class="form-table">
+<table width="100%" class="widefat striped">
+	<thead>
+		<tr>
+			<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox"></td>
+			<th><?php _e( 'Select Post Types', 'hasp' ) ?></th>
+			<th><?php _e( 'Datetime of expiration', 'hasp' ) ?></th>
+			<th><?php _e( 'Overwrite the another post', 'hasp' ) ?></th>
+		</tr>
+	</thead>
 	<tbody>
 		<tr valign="top">
-			<th scope="row"><?php _e( 'Select Post Types', 'hasp' ) ?></th>
-			<td>
+
 			<?php
 				$post_types = get_post_types( array (
 					'show_ui' => true,
@@ -37,18 +58,59 @@ $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : a
 				foreach ( $post_types  as $post_type ) {
 					if ( $post_type->name == 'attachment' ) continue;
 					?>
-					<label><input type="checkbox" name="objects[]" value="<?php echo $post_type->name; ?>" <?php if ( isset( $hasp_objects ) && is_array( $hasp_objects ) ) { if ( in_array( $post_type->name, $hasp_objects ) ) { echo 'checked="checked"'; } } ?>>&nbsp;<?php echo $post_type->label; ?></label><br>
+
+					<tr id="" class="">
+						<th scope="row" class="check-column">
+							<input type="checkbox" name="objects[]" value="<?php echo $post_type->name; ?>" <?php if ( isset( $hasp_objects ) && is_array( $hasp_objects ) ) { if ( in_array( $post_type->name, $hasp_objects ) ) { echo 'checked="checked"'; } } ?>>
+						</th>
+						<td class=""><?php echo $post_type->label; ?></td>
+						<td class="">
+							<?php
+								$checked_msg = "";
+								if ( $hasp_activate_expire_setting && isset( $hasp_activate_expire ) && is_array( $hasp_activate_expire ) ) {
+									if ( in_array( $post_type->name, $hasp_activate_expire ) ) {
+										$checked_msg = ' checked="checked"';
+									}
+								} elseif( !$hasp_activate_expire_setting ){
+									$checked_msg = ' checked="checked"';
+								}
+							?>
+							<input type="checkbox" name="activate_expire[]" value="<?php echo $post_type->name; ?>"<?php echo $checked_msg; ?>>
+						</td>
+						<td class="">
+							<?php
+								$checked_msg = "";
+								if ( $hasp_activate_overwrite_setting && isset( $hasp_activate_overwrite ) && is_array( $hasp_activate_overwrite ) ) {
+									if ( in_array( $post_type->name, $hasp_activate_overwrite ) ) {
+										$checked_msg = ' checked="checked"';
+									}
+								} elseif( !$hasp_activate_expire_setting ){
+									$checked_msg = ' checked="checked"';
+								}
+							?>
+							<input type="checkbox" name="activate_overwrite[]" value="<?php echo $post_type->name; ?>"<?php echo $checked_msg; ?>>
+						</td>
+					</tr>
+
 					<?php
 				}
 			?>
-			</td>
-		</tr>
+
 	</tbody>
+	<tfoot>
+		<tr>
+			<td id="cb" class="manage-column column-cb check-column"><input id="cb-select-all-1" type="checkbox"></td>
+			<th><?php _e( 'Select Post Types', 'hasp' ) ?></th>
+			<th><?php _e( 'Datetime of expiration', 'hasp' ) ?></th>
+			<th><?php _e( 'Overwrite the another post', 'hasp' ) ?></th>
+		</tr>
+	</tfoot>
 </table>
 
 </div>
 
-<label><input type="checkbox" id="hasp_allcheck_objects"> <?php _e( 'All Check', 'hasp' ) ?></label>
+
+</div>
 
 <p class="submit">
 	<input type="submit" class="button-primary" name="hasp_submit" value="<?php _e( 'Update' ); ?>">
@@ -57,15 +119,3 @@ $hasp_objects = isset( $hasp_options['objects'] ) ? $hasp_options['objects'] : a
 </form>
 
 </div>
-
-<script>
-(function($){
-	
-	$("#hasp_allcheck_objects").on('click', function(){
-		var items = $("#hasp_select_objects input");
-		if ( $(this).is(':checked') ) $(items).prop('checked', true);
-		else $(items).prop('checked', false);
-	});
-
-})(jQuery)
-</script>
