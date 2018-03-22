@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.1.6.1
+Version: 1.2.0
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -107,11 +107,14 @@ class Hasp
 			foreach( $post_types as $post_type )
 			{
 				$obj = get_post_type_object( $post_type );
-				$public_value = $obj->public;
 				$show_ui_value = $obj->show_ui;
-				if (!$public_value || !$show_ui_value || 'attachment' == $post_type) {
+				if ( !$show_ui_value || 'attachment' == $post_type) {
 					continue;
 				}
+
+				$activate_expire_flg = $this->hasp_activate_function_by_posttype( $post_type );
+				if(!$activate_expire_flg['expire'] && !$activate_expire_flg['overwrite'] ) continue;
+
 				add_meta_box(
 					'hasp_meta_box',
 					__( 'Advanced Schedule', 'hasp' ),
@@ -409,6 +412,9 @@ class Hasp
 
 		$input_options = array();
 		$input_options['objects'] = isset( $_POST['objects'] ) ? $_POST['objects'] : '';
+		$input_options['activate_expire'] = isset( $_POST['activate_expire'] ) ? $_POST['activate_expire'] : '';
+		$input_options['activate_overwrite'] = isset( $_POST['activate_overwrite'] ) ? $_POST['activate_overwrite'] : '';
+
 		update_option( 'hasp_options', $input_options );
 		wp_redirect( 'admin.php?page=hasp-settings&msg=update' );
 	}
@@ -436,6 +442,21 @@ class Hasp
 		add_option('hasp_activation', 1, '', 'no');
 	}
 	
+	/**
+	 * Get function activate status by post type
+	 */
+	function hasp_activate_function_by_posttype($post_type){
+		$rtn = array('expire' => FALSE, 'overwrite' => FALSE );
+		$hasp_options = get_option( 'hasp_options' );
+		if((array_key_exists('activate_expire',$hasp_options) && in_array($post_type, $hasp_options['activate_expire'])) || !array_key_exists('activate_expire',$hasp_options)){
+			$rtn['expire'] = TRUE;
+		}
+		if((array_key_exists('activate_overwrite',$hasp_options) && in_array($post_type, $hasp_options['activate_overwrite'])) || !array_key_exists('activate_overwrite',$hasp_options)){
+			$rtn['overwrite'] = TRUE;
+		}
+		return $rtn;
+	}
+  
 	/*
 	* Check ACF object record
 	*/
