@@ -3,7 +3,7 @@ Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
 Tested up to: 4.7.2
-Stable tag: 1.2.0
+Stable tag: 1.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -38,6 +38,12 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 4. Admin Setting
 
 == Changelog ==
+
+= 1.2.1 =
+
+* Change the display position of this plugin's input-box into the Publish's meta-box.
+* Change the width of input-box and select-box to 100%.
+* Sort the overwrite post list by parameter of 'menu_order'( Respect for Intuitive Custom Post Order plugin). Defaults to 'post_date'.
 
 = 1.2.0 =
 

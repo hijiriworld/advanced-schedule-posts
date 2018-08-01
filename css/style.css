@@ -5,6 +5,18 @@
 	display: block;
 }
 
+input#hasp_expire_date, select#hasp_overwrite_post_id {
+	width: 100%;
+}
+
+.hasp_setting {
+	padding: 0px 11px 10px;
+}
+
+.hasp_setting span{
+	padding-left: 5px;
+}
+
 /* css for timepicker */
 /*
 .ui-timepicker-div .ui-widget-header { margin-bottom: 8px; }
