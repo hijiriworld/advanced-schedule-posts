@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI: 
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 1.2.0
+Version: 1.2.1
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -114,17 +114,19 @@ class Hasp
 
 				$activate_expire_flg = $this->hasp_activate_function_by_posttype( $post_type );
 				if(!$activate_expire_flg['expire'] && !$activate_expire_flg['overwrite'] ) continue;
-
-				add_meta_box(
-					'hasp_meta_box',
-					__( 'Advanced Schedule', 'hasp' ),
-					array( $this, 'add_meta_box' ),
-					$post_type,
-					'side',
-					'default'
-				);
+				
+				if(get_current_screen()->post_type === $post_type){
+					add_action('post_submitbox_misc_actions', array($this, 'add_submitbox'), 5);
+				}
 			}
 		}
+	}
+	
+	function add_submitbox(){
+		ob_start();
+		require HASP_DIR.'/include/meta_box.php';
+		$meta_box = ob_get_clean();
+		echo $meta_box;
 	}
 
 	function add_meta_box()
@@ -135,8 +137,14 @@ class Hasp
 	function get_post_list( $post_type, $post_id )
 	{
 		global $wpdb;
+		
+		// Respect for Intuitive Custom Post Order plugin
+		$hicpo_options = get_option( 'hicpo_options' ) ? get_option( 'hicpo_options' ) : array();
+		$hicpo_objects = isset( $hicpo_options['objects'] ) && is_array( $hicpo_options['objects'] ) ? $hicpo_options['objects'] : array();
+		$orderby = in_array( $post_type, $hicpo_objects ) ? 'menu_order ASC' : 'post_date DESC';
+
 		$publish_posts = $wpdb->get_results(
-			"SELECT ID, post_title FROM $wpdb->posts WHERE ID != '$post_id' AND post_type = '$post_type' AND post_status = 'publish'"
+			"SELECT ID, post_title FROM $wpdb->posts WHERE ID != '$post_id' AND post_type = '$post_type' AND post_status = 'publish' ORDER BY $orderby"
 		);
 		
 		$sql = "SELECT DISTINCT meta_value 
