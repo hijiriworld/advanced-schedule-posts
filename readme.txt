@@ -2,8 +2,8 @@
 Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
-Tested up to: 4.7.2
-Stable tag: 1.2.1
+Tested up to: 5.1.1
+Stable tag: 2.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -39,28 +39,21 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 
 == Changelog ==
 
-= 1.2.1 =
+= 2.0.0 =
 
+* Show schedule post list.
+* Multiple reservation.
+* When overwrite the another post, it change the `post_id` that is included in the 'ACF Post Object Field'.
 * Change the display position of this plugin's input-box into the Publish's meta-box.
 * Change the width of input-box and select-box to 100%.
 * Sort the overwrite post list by parameter of 'menu_order'( Respect for Intuitive Custom Post Order plugin). Defaults to 'post_date'.
+* Enable Custom Post Types with parameter 'public' => 'false'.
+* Bug Fix: Process when the overwrite destination can not be found.
+* Bug Fix: Improved Tag disappears in the editor.
 
 = 1.2.0 =
 
 * Select function that you want to enable.
-* Enable Custom Post Types with parameter 'public' => 'false'.
-
-= 1.1.6.1 =
-
-* Bug Fix: for v1.1.6.
-
-= 1.1.6 =
-
-* When overwrite the another post, it change the `post_id` that is included in the 'ACF Post Object Field'.
-
-= 1.1.5 =
-
-* Bug Fix: Improved Tag disappears in the editor.
 
 = 1.1.4.1 =
 

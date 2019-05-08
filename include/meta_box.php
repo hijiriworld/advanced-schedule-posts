@@ -16,7 +16,7 @@ $activate_expire_flg = $this->hasp_activate_function_by_posttype($post_type);
 
 <div class="hasp_setting">
 	<?php if($activate_expire_flg['expire']): ?>
-		<p><label><input type="checkbox" name="hasp_expire_enable" id="hasp_expire_enable" <?php if( $hasp_expire_enable == 1 ) echo 'checked="checked"'; ?>><span><?php _e( 'Datetime of expiration', 'hasp' ) ?></span></label></p>
+		<p><label><input type="checkbox" name="hasp_expire_enable" id="hasp_expire_enable" <?php if( $hasp_expire_enable == 1 ) echo 'checked="checked"'; ?>><span><?php _e( 'Datetime of Expire', 'hasp' ) ?></span></label></p>
 
 		<div id="hasp_expire_div" style="display: none;">
 
