@@ -32,10 +32,11 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 
 == Screenshots ==
 
-1. Setting - datetime of expiration
-2. Setting - overwrite the another post
-3. List
-4. Admin Setting
+1. Setting - Expire
+2. Setting - Overwrite
+3. Posts
+4. List of Schedule Posts
+5. Initial Settings
 
 == Changelog ==
 
