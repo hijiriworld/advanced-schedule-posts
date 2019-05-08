@@ -1,92 +1,133 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
-"POT-Creation-Date: 2016-08-04 11:32+0900\n"
-"PO-Revision-Date: 2016-08-04 11:35+0900\n"
-"Last-Translator: hijiri <hijiriworld@gmail.com>\n"
-"Language-Team: \n"
+"Project-Id-Version: Advanced Schedule Posts\n"
+"POT-Creation-Date: 2019-05-08 16:04+0900\n"
+"PO-Revision-Date: 2019-05-08 16:05+0900\n"
+"Last-Translator: \n"
+"Language-Team: hijiri\n"
 "Language: ja\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 2.2.1\n"
+"X-Poedit-Basepath: ..\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Poedit-KeywordsList: __;_e\n"
+"X-Poedit-SearchPath-0: .\n"
 
-#: advanced-schedule-posts/advanced-schedule-posts.php:116
-#: advanced-schedule-posts/advanced-schedule-posts.php:356
-msgid "Advanced Schedule"
-msgstr "時限設定"
+#: admin/list.php:5 advanced-schedule-posts.php:484
+#: advanced-schedule-posts.php:485
+msgid "Scheduled Posts"
+msgstr "予約投稿"
 
-#: advanced-schedule-posts/advanced-schedule-posts.php:184
-msgid "Schedule"
-msgstr "時限設定"
+#: admin/list.php:26
+msgid "Search"
+msgstr "検索"
 
-#: advanced-schedule-posts/advanced-schedule-posts.php:196
-msgid "Expired on:"
-msgstr "公開終了日時:"
+#: admin/list.php:32
+msgid "Select Date"
+msgstr "日時選択"
 
-#: advanced-schedule-posts/advanced-schedule-posts.php:199
-msgid "Overwrite:"
-msgstr "上書きする投稿:"
+#: admin/list.php:40
+msgid "Title"
+msgstr "投稿タイトル"
 
-#: advanced-schedule-posts/admin/settings.php:12
-msgid "Advanced Schedule Posts Settings"
-msgstr "時限設定"
+#: admin/list.php:45 admin/list.php:73
+msgid "Post Status"
+msgstr "投稿ステータス"
 
-#: advanced-schedule-posts/admin/settings.php:17
+#: admin/list.php:49
+msgid "Post Type"
+msgstr "投稿タイプ"
+
+#: admin/list.php:54
+msgid "Datetime of Schedule"
+msgstr "予約日時"
+
+#: admin/list.php:59 include/meta_box.php:19
+msgid "Datetime of Expire"
+msgstr "予約非公開日時"
+
+#: admin/list.php:64
+msgid "Datetime of Overwrite"
+msgstr "上書き予約公開日時"
+
+#: admin/list.php:69
+msgid "Title to be Overwritten"
+msgstr "上書きする投稿"
+
+#: admin/settings.php:6
 msgid "Settings saved."
-msgstr ""
+msgstr "設定を保存しました。"
 
-#: advanced-schedule-posts/admin/settings.php:31
-msgid "Select Post Types"
-msgstr "カスタム投稿タイプ"
+#: admin/settings.php:11 advanced-schedule-posts.php:492
+msgid "Settings"
+msgstr "設定"
 
-#: advanced-schedule-posts/admin/settings.php:53
-msgid "All Check"
+#: admin/settings.php:22
+msgid "Select All"
 msgstr "すべて選択"
 
-#: advanced-schedule-posts/admin/settings.php:56
+#: admin/settings.php:23
+msgid "Enable Post Type"
+msgstr "投稿タイプ"
+
+#: admin/settings.php:24
+msgid "Enable Expire"
+msgstr "予約非公開"
+
+#: admin/settings.php:25
+msgid "Enable Overwrite"
+msgstr "上書き予約公開"
+
+#: admin/settings.php:80
 msgid "Update"
-msgstr ""
+msgstr "更新"
 
-#: advanced-schedule-posts/include/meta_box.php:15
-msgid "Datetime of expiration"
-msgstr "公開終了日時"
+#: advanced-schedule-posts.php:237 advanced-schedule-posts.php:630
+msgid "Schedule"
+msgstr "予約"
 
-#: advanced-schedule-posts/include/meta_box.php:19
+#: advanced-schedule-posts.php:249 advanced-schedule-posts.php:634
+msgid "Expire"
+msgstr "予約非公開"
+
+#: advanced-schedule-posts.php:254 advanced-schedule-posts.php:638
+msgid "Overwrite"
+msgstr "上書き予約公開"
+
+#: advanced-schedule-posts.php:491
+msgid "List"
+msgstr "予約一覧"
+
+#: advanced-schedule-posts.php:625
+msgid "All"
+msgstr "すべて"
+
+#: include/meta_box.php:23
 msgid "Y-m-d H:i"
 msgstr ""
 
-#: advanced-schedule-posts/include/meta_box.php:20
+#: include/meta_box.php:24
 msgid "Input datetime."
-msgstr "日時を入力してください。"
+msgstr "予約非公開日時を選択してください。"
 
-#: advanced-schedule-posts/include/meta_box.php:21
+#: include/meta_box.php:25
 msgid "Input future datetime."
-msgstr "公開日より未来の日時を入力してください。"
+msgstr "未来の日時を入力してください。"
 
-#: advanced-schedule-posts/include/meta_box.php:25
+#: include/meta_box.php:31
 msgid "Overwrite the another post"
 msgstr "上書き予約公開"
 
-#: advanced-schedule-posts/include/meta_box.php:30
+#: include/meta_box.php:36
 msgid "Select"
-msgstr ""
+msgstr "選択"
 
-#: advanced-schedule-posts/include/meta_box.php:35
+#: include/meta_box.php:41
 msgid "Select the post."
 msgstr "上書きする投稿を選択してください。"
 
-#: advanced-schedule-posts/include/meta_box.php:36
+#: include/meta_box.php:42
 msgid "You can set schedule which overwrites the another post."
-msgstr "予約投稿時に他の投稿に上書きすることができます。"
-
-#~ msgid "Expire Post"
-#~ msgstr "公開終了日時"
-
-#~ msgid "Expire Date"
-#~ msgstr "公開終了日時"
-
-#~ msgid "Input expiration date."
-#~ msgstr "公開終了日時を入力してください。"
-
-#~ msgid "Enable"
-#~ msgstr "設定する"
+msgstr "他の投稿に上書き予約公開を設定することができます。"

@@ -1,10 +1,15 @@
 .hasp_error_mes {
 	color: red;
 }
+div#hasp_select_objects {
+    width: 700px;
+}
+div#hasp_select_objects th.column-expire, div#hasp_select_objects th.column-overwrite {
+    width: 130px;
+}
 #hasp_expire_div span, #hasp_overwrite_div span {
 	display: block;
 }
-
 input#hasp_expire_date, select#hasp_overwrite_post_id {
 	width: 100%;
 }
@@ -16,6 +21,21 @@ input#hasp_expire_date, select#hasp_overwrite_post_id {
 .hasp_setting span{
 	padding-left: 5px;
 }
+
+.sch_post a {
+	color: #0073aa;
+	-webkit-transition-property: border, background, color;
+	transition-property: border, background, color;
+	-webkit-transition-duration: .05s;
+	transition-duration: .05s;
+	-webkit-transition-timing-function: ease-in-out;
+	transition-timing-function: ease-in-out;
+}
+.sch_post a:hover,
+.sch_post a:active {
+	color: #00a0d2;
+}
+
 
 /* css for timepicker */
 /*
