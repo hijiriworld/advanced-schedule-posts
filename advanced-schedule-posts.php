@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.0.0
+Version: 2.0.1
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
