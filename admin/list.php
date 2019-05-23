@@ -78,7 +78,7 @@
         <?php foreach ($future_overwrite_posts as $post) : ?>
         <tr>
           <td>
-	        <strong><?php echo "<a href=" . admin_url() . "post.php?post=" . $post->post_id . "&action=edit>" . $post->post_title . "</a>"; ?></strong>
+	        <strong><?php echo "<a href=" . admin_url() . "post.php?post=" . $post->post_id . "&action=edit>" . esc_html($post->post_title) . "</a>"; ?></strong>
           </td>
           <td>
             <?php _e( $post->post_status , 'hasp' ); ?>
@@ -100,7 +100,7 @@
             <?php if ( isset( $post->post_date_overwrite ) ) echo date( "Y/m/d H:i" , strtotime( $post->post_date_overwrite ) ) ; ?>
           </td>
           <td>
-            <?php echo "<a href=" . admin_url() . "post.php?post=" . $post->post_id_overwrite . "&action=edit>" . $post->post_title_overwrite . "</a>"; ?>
+            <?php echo "<a href=" . admin_url() . "post.php?post=" . $post->post_id_overwrite . "&action=edit>" . esc_html($post->post_title_overwrite) . "</a>"; ?>
           </td>
           <td>
             <?php echo __( $post->post_status_overwrite , 'hasp' ) ; ?>

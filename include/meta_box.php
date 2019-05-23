@@ -35,11 +35,11 @@ $activate_expire_flg = $this->hasp_activate_function_by_posttype($post_type);
 			<select name="hasp_overwrite_post_id" id="hasp_overwrite_post_id">
 				<option value="0">— <?php _e( 'Select' ) ?> —</option>
 				<?php foreach( $post_list as $post ) : ?>
-					<option value="<?php echo $post->ID ?>" <?php if( $hasp_overwrite_post_id == $post->ID ) echo 'selected'?>><?php echo $post->post_title ?></option>
+					<option value="<?php echo $post->ID ?>" <?php if( $hasp_overwrite_post_id == $post->ID ) echo 'selected'?>><?php echo esc_html($post->post_title) ?></option>
 				<?php endforeach; ?>
 			</select>
 			<span id="hasp_overwrite_error" class="hasp_error_mes" style="display: none"><?php _e( 'Select the post.', 'hasp' ) ?></span>
 			<p><?php _e( 'You can set schedule which overwrites the another post.', 'hasp' ) ?></p>
 		</div>
 	<?php endif; ?>
-</div> 
+</div>
