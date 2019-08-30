@@ -14,7 +14,7 @@ When it becomes the datetime of expiration, the status of post is changed to 'dr
 
 When the scheduled post(A) is published by wp cron, the new post(A) overwrite the another post(B) and the old post(B) is changed to draft.<br>
 The slug of the new post(A) is changed to the slug of the old post(B).<br>
-The slug of the old post(B) is changed to what added suffix(Ymd).
+The slug of the old post(B) is changed to the slug of the new post(A).
 
 ## Installation
 

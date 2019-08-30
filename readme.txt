@@ -3,7 +3,7 @@ Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
 Tested up to: 5.1.1
-Stable tag: 2.0.1
+Stable tag: 2.1.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -21,7 +21,7 @@ When it becomes the datetime of expiration, the status of post is changed to 'dr
 
 When the scheduled post(A) is published by wp cron, the new post(A) overwrite the another post(B) and the old post(B) is changed to draft.<br>
 The slug of the new post(A) is changed to the slug of the old post(B).<br>
-The slug of the old post(B) is changed to what added suffix(Ymd).
+The slug of the old post(B) is changed to the slug of the new post(A).
 
 This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedule-posts">GitHub.</a>
 
@@ -39,6 +39,12 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 5. Initial Settings
 
 == Changelog ==
+
+= 2.1.0 =
+
+* Support the Gutenberg editor from WordPress 5.0.
+* Set the reservation time to 00 seconds.
+* The Overwrite logic changed. After overwriting, The slug of the old post(B) is changed to the slug of the new post(A).
 
 = 2.0.1 =
 
