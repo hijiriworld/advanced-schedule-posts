@@ -37,6 +37,7 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 3. Posts
 4. List of Schedule Posts
 5. Initial Settings
+6. Guternberg editor
 
 == Changelog ==
 
