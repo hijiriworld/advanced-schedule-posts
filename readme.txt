@@ -45,6 +45,7 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 * Support the Gutenberg editor from WordPress 5.0.
 * Set the reservation time to 00 seconds.
 * The Overwrite logic changed. After overwriting, The slug of the old post(B) is changed to the slug of the new post(A).
+* Bug Fix.
 
 = 2.0.1 =
 
