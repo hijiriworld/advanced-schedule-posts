@@ -134,10 +134,12 @@ class Hasp
 			foreach( $post_types as $post_type )
 			{
 				$obj = get_post_type_object( $post_type );
+/*
 				$show_ui_value = $obj->show_ui;
 				if ( !$show_ui_value || 'attachment' == $post_type) {
 					continue;
 				}
+*/
 
 				$activate_expire_flg = $this->hasp_activate_function_by_posttype( $post_type );
 				if(!$activate_expire_flg['expire'] && !$activate_expire_flg['overwrite'] ) continue;
