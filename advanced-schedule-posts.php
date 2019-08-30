@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.0.1
+Version: 2.1.0
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -55,6 +55,9 @@ class Hasp
 {
 	function __construct()
 	{
+		// Set the reservation time to 00 seconds
+		add_action( 'transition_post_status', array( $this, 'save_future' ), 1 ,6 );
+
 		// to publish - save expire unsave overwrite
 		add_action( 'new_to_publish', array( $this, 'action_to_publish' ) );
 		add_action( 'publish_to_publish', array( $this, 'action_to_publish' ) );
@@ -85,7 +88,6 @@ class Hasp
 		add_action( 'admin_menu', array( $this, 'admin_menu') );
 		add_action( 'admin_init', array( $this, 'update_options') );
 
-
 		// do
 		if( !is_admin() )
 		{
@@ -99,6 +101,30 @@ class Hasp
 	* Setting Method
 	*/
 
+	/**
+	 * Set the reservation time to 00 seconds
+	 * @param String $new_status
+	 * @param String $old_status
+	 * @param Object $post
+	 */
+	function save_future( $new_status, $old_status, $post ) {
+		if ($new_status === 'future' && $old_status !== 'future') {
+			$post_id = $post->ID;
+			do_action('save_post', $post_id, $post);
+			$post_date = $post->post_date;
+			$post_date = date("Y-m-d H:i:00", strtotime($post_date));
+			$post_date_gmt = $post->post_date_gmt;
+			$post_date_gmt = date("Y-m-d H:i:00", strtotime($post_date_gmt));
+			$post_val = array(
+					'ID'            => $post_id,
+					'post_date'     => $post_date,
+					'post_date_gmt' => $post_date_gmt,
+			);
+			wp_update_post( $post_val );
+		}
+		return;
+	}
+	
 	function hasp_add_meta_box()
 	{
 
@@ -116,8 +142,20 @@ class Hasp
 				$activate_expire_flg = $this->hasp_activate_function_by_posttype( $post_type );
 				if(!$activate_expire_flg['expire'] && !$activate_expire_flg['overwrite'] ) continue;
 
-				if(get_current_screen()->post_type === $post_type){
-					add_action('post_submitbox_misc_actions', array($this, 'add_submitbox'), 5);
+				// Check the editor
+				if ( $this->get_classic_editor_state() ){
+					if(get_current_screen()->post_type === $post_type){
+						add_action('post_submitbox_misc_actions', array($this, 'add_submitbox'), 5);
+					}
+				} else {
+					add_meta_box(
+						'hasp_meta_box',
+						__( 'Advanced Schedule', 'hasp' ),
+						array( $this, 'add_meta_box_block' ),
+						$post_type,
+						'side',
+						'default'
+					);
 				}
 			}
 		}
@@ -133,6 +171,11 @@ class Hasp
 	function add_meta_box()
 	{
 		require HASP_DIR.'/include/meta_box.php';
+	}
+
+	function add_meta_box_block()
+	{
+		require HASP_DIR.'/include/meta_box_block.php';
 	}
 
 	function get_post_list( $post_type, $post_id )
@@ -408,7 +451,11 @@ class Hasp
 	{
 		global $wpdb;
 
-		$sql = "SELECT posts.ID
+		// 上書き後の記事データを取得
+		$sql = "SELECT
+					posts.ID, posts.post_date, posts.post_date_gmt, posts.post_content,
+					posts.post_title, posts.post_excerpt, posts.post_modified, posts.post_modified_gmt,
+					posts.post_content_filtered, posts.post_password
 			FROM $wpdb->posts AS posts
 			INNER JOIN $wpdb->postmeta AS postmeta1 ON ( posts.ID = postmeta1.post_id )
 			WHERE posts.post_status = 'publish'
@@ -428,40 +475,49 @@ class Hasp
 
 			if ( $hasp_overwrite_enable && $hasp_overwrite_post_id ) {
 
-				$overwrite_post_name = get_post_field( 'post_name', $hasp_overwrite_post_id );
+				//$overwrite_post_name = get_post_field( 'post_name', $hasp_overwrite_post_id );
 
-				$from_overwrite_post_sql = "UPDATE $wpdb->posts SET post_status = 'draft',post_name = '{$overwrite_post_name}-". date( 'Ymd' ). "' WHERE ID = {$hasp_overwrite_post_id};";
-				$from_result = $wpdb->query( $from_overwrite_post_sql);
+				// 上書き前の記事データを取得
+				$sql = "SELECT
+							posts.ID, posts.post_date, posts.post_date_gmt, posts.post_content,
+							posts.post_title, posts.post_excerpt, posts.post_modified, posts.post_modified_gmt,
+							posts.post_content_filtered, posts.post_password
+						FROM $wpdb->posts AS posts
+						WHERE posts.ID = {$hasp_overwrite_post_id}
+				";
+				$origin_post = $wpdb->get_results( $sql );
+				if(!is_array($origin_post) || count($origin_post) !== 1) continue;
 
-				$to_overwrite_post_sql = "UPDATE $wpdb->posts SET post_name = '{$overwrite_post_name}' WHERE ID = {$post_id};";
-				$to_result = $wpdb->query( $to_overwrite_post_sql);
+				// postテーブルの上書きを実行
+				$new_post_sql = "UPDATE $wpdb->posts SET post_date = '{$post->post_date}', post_date_gmt = '{$post->post_date_gmt}', post_content = '{$post->post_content}',
+												post_title = '{$post->post_title}', post_excerpt = '{$post->post_excerpt}', post_modified = '{$post->post_modified}',
+												post_modified_gmt = '{$post->post_modified_gmt}', post_content_filtered = '{$post->post_content_filtered}', post_password = '{$post->post_password}', post_status = 'publish'
+ 											WHERE ID = {$hasp_overwrite_post_id};";
+				$new_post_result = $wpdb->query( $new_post_sql);
 
+				$old_post_sql = "UPDATE $wpdb->posts SET post_date = '{$origin_post[0]->post_date}', post_date_gmt = '{$origin_post[0]->post_date_gmt}', post_content = '{$origin_post[0]->post_content}',
+												post_title = '{$origin_post[0]->post_title}', post_excerpt = '{$origin_post[0]->post_excerpt}', post_modified = '{$origin_post[0]->post_modified}',
+												post_modified_gmt = '{$origin_post[0]->post_modified_gmt}', post_content_filtered = '{$origin_post[0]->post_content_filtered}', post_password = '{$origin_post[0]->post_password}', post_status = 'draft'
+ 											WHERE ID = {$post_id};";
+				$old_post_result = $wpdb->query( $old_post_sql);
+
+				// 上書き予約設定を解除する
 				$this->clear_overwrite( $post_id );
 
-				// for nav-menus
-				$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE meta_key = '_menu_item_object_id' AND meta_value = {$hasp_overwrite_post_id};";
+				// postmetaテーブルの上書きを実行
+				$sql = "UPDATE $wpdb->postmeta SET post_id = 0 WHERE post_id = {$hasp_overwrite_post_id};";
+				$result = $wpdb->query( $sql );
+				$sql = "UPDATE $wpdb->postmeta SET post_id = {$hasp_overwrite_post_id} WHERE post_id = {$post_id};";
+				$result = $wpdb->query( $sql );
+				$sql = "UPDATE $wpdb->postmeta SET post_id = {$post_id} WHERE post_id = 0;";
 				$result = $wpdb->query( $sql );
 
-				// 世代更新用処理
-				$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE meta_key = 'hasp_overwrite_post_id' AND meta_value = {$hasp_overwrite_post_id};";
+				// タクソノミーの上書きを実行
+				$sql = "UPDATE $wpdb->term_relationships SET object_id = 0 WHERE object_id = {$hasp_overwrite_post_id};";
 				$result = $wpdb->query( $sql );
-
-				// for ACF Post Object Field
-				$sql = "SELECT post_id, meta_key FROM $wpdb->postmeta WHERE meta_value = '{$hasp_overwrite_post_id}';";
-				$posts = $wpdb->get_results( $sql );
-				foreach( $posts as $post) {
-					if ( $this->hasp_record_check( $post->post_id, $post->meta_key ) ){
-						$sql = "UPDATE $wpdb->postmeta SET meta_value = {$post_id} WHERE post_id = {$post->post_id} AND meta_key = '{$post->meta_key}' AND meta_value = {$hasp_overwrite_post_id};";
-						$result = $wpdb->query( $sql );
-					}
-				}
-
-				// 表示設定：フロントページ
-				$sql = "UPDATE $wpdb->options SET option_value = {$post_id} WHERE option_name = 'page_on_front' AND option_value = {$hasp_overwrite_post_id};";
+				$sql = "UPDATE $wpdb->term_relationships SET object_id = {$hasp_overwrite_post_id} WHERE object_id = {$post_id};";
 				$result = $wpdb->query( $sql );
-
-				// 表示設定：投稿ページ
-				$sql = "UPDATE $wpdb->options SET option_value = {$post_id} WHERE option_name = 'page_for_posts' AND option_value = {$hasp_overwrite_post_id};";
+				$sql = "UPDATE $wpdb->term_relationships SET object_id = {$post_id} WHERE object_id = 0;";
 				$result = $wpdb->query( $sql );
 			}
 		}
@@ -753,6 +809,34 @@ class Hasp
 	    return false;
 	}
 
+	/**
+	 * Check the editor's type (true = Classic Editor , false = Block Editor(Gutenberg) )
+	 */
+	function get_classic_editor_state()
+	{
+		global $post_type;
+		$post = get_default_post_to_edit( $post_type, true );
+
+		if (function_exists( 'use_block_editor_for_post' ) ) {
+			if ( use_block_editor_for_post( $post ) ) {
+				if ( isset( $_GET['classic-editor'] ) ) {
+					return true;
+				}else{
+					return false;
+				}
+			}else{
+				return true;
+			}
+		} elseif (function_exists( 'is_gutenberg_page' ) ){
+		    if ( is_gutenberg_page() ) {
+		        return false;
+		    } else {
+		        return true;
+		    }
+		}else{
+			return true;
+		}
+	}
 }
 
 ?>

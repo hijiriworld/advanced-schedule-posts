@@ -131,3 +131,7 @@ msgstr ""
 #: include/meta_box.php:42
 msgid "You can set schedule which overwrites the another post."
 msgstr ""
+
+#: advanced-schedule-posts.php:126
+msgid "Advanced Schedule"
+msgstr ""
