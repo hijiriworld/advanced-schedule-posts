@@ -791,10 +791,10 @@ class Hasp
 	function hasp_activate_function_by_posttype($post_type){
 		$rtn = array('expire' => FALSE, 'overwrite' => FALSE );
 		$hasp_options = get_option( 'hasp_options' );
-		if((array_key_exists('activate_expire',$hasp_options) && in_array($post_type, $hasp_options['activate_expire'])) || !array_key_exists('activate_expire',$hasp_options)){
+		if((array_key_exists('activate_expire',$hasp_options) && is_array($hasp_options['activate_expire']) && in_array($post_type, $hasp_options['activate_expire'])) || !array_key_exists('activate_expire',$hasp_options)){
 			$rtn['expire'] = TRUE;
 		}
-		if((array_key_exists('activate_overwrite',$hasp_options) && in_array($post_type, $hasp_options['activate_overwrite'])) || !array_key_exists('activate_overwrite',$hasp_options)){
+		if((array_key_exists('activate_overwrite',$hasp_options) && is_array($hasp_options['activate_overwrite']) && in_array($post_type, $hasp_options['activate_overwrite'])) || !array_key_exists('activate_overwrite',$hasp_options)){
 			$rtn['overwrite'] = TRUE;
 		}
 		return $rtn;
