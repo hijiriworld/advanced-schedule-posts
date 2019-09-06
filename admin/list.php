@@ -17,17 +17,6 @@
         <?php if($con < count($quick_links)) echo "|"; ?>
       <?php endforeach; ?>
     </ul>
-<!--
-	
-    <form name="f_hasp_list" id="hasp_list" action="<?php echo $_SERVER['REQUEST_URI']; ?>" method="post">
-	  <p class="search-box">
-      <?php wp_nonce_field("nonce_hasp"); ?>
-	    <input type="search" value="<?php echo $srch_word; ?>" name="txt_srch" id="srch_word" placeholder="">
-        <input type="button" class="button" id="wd_srch" value="<?php _e( 'Search', 'hasp' ) ?>">
-	  </p>
-    </form>
-    
--->
     <div class="alignright">
 	    <input type="text" name="date" id="view_date" placeholder="<?php _e( 'Select Date', 'hasp' ); ?>" value="<?php echo $view_date; ?>">
 	</div>
