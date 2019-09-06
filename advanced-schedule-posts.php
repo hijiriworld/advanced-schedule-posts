@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.1.0
+Version: 2.1.1
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -521,6 +521,9 @@ class Hasp
 				$result = $wpdb->query( $sql );
 				$sql = "UPDATE $wpdb->term_relationships SET object_id = {$post_id} WHERE object_id = 0;";
 				$result = $wpdb->query( $sql );
+
+				// Generate a revision. 
+				wp_save_post_revision( $hasp_overwrite_post_id );
 			}
 		}
 	}
