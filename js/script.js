@@ -89,10 +89,20 @@
 			$('.hasp_error_mes').hide();
 
 			var error = false;
+			var year = $('#aa').val();
+			var month = $('#mm').val();
+			var day = $('#jj').val();
+			var hour = $('#hh').val();
+			var minute = $('#mn').val();
 
 			if ( hasp_expire_enable.attr('checked') ) {
 
-				var publish_date = $('#aa').val() + '-' + $('#mm').val() + '-' + $('#jj').val() + ' ' + $('#hh').val() + ':' + $('#mn').val() + ':00';
+				var publish_date = year + '-' +
+					month + '-' +
+					( ( '' + day ).length < 2 ? '0' : '' ) + day + ' ' +
+					( ( '' + hour ).length < 2 ? '0' :'' ) + hour + ':' +
+					( ( '' + minute ).length < 2 ? '0' :'' ) + minute +
+					':00';
 
 				if ( hasp_expire_date.val() == '' ) {
 					$('#hasp_expire_error_1').show();
