@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.1.1
+Version: 2.1.2
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -485,10 +485,16 @@ class Hasp
 							posts.post_title, posts.post_excerpt, posts.post_modified, posts.post_modified_gmt,
 							posts.post_content_filtered, posts.post_password
 						FROM $wpdb->posts AS posts
+							INNER JOIN $wpdb->postmeta AS postmeta ON posts.ID = postmeta.meta_value
 						WHERE posts.ID = {$hasp_overwrite_post_id}
+ 							AND postmeta.meta_key = 'hasp_overwrite_post_id'
+ 							AND postmeta.post_id = {$post_id}
 				";
 				$origin_post = $wpdb->get_results( $sql );
 				if(!is_array($origin_post) || count($origin_post) !== 1) continue;
+
+				// 上書き予約設定を解除する
+				$this->clear_overwrite( $post_id );
 
 				// postテーブルの上書きを実行
 				$new_post_sql = "UPDATE $wpdb->posts SET post_date = '{$post->post_date}', post_date_gmt = '{$post->post_date_gmt}', post_content = '{$post->post_content}',
@@ -496,33 +502,81 @@ class Hasp
 												post_modified_gmt = '{$post->post_modified_gmt}', post_content_filtered = '{$post->post_content_filtered}', post_password = '{$post->post_password}', post_status = 'publish'
  											WHERE ID = {$hasp_overwrite_post_id};";
 				$new_post_result = $wpdb->query( $new_post_sql);
+				if($new_post_result === 0 || $new_post_result === FALSE) contiune;
 
 				$old_post_sql = "UPDATE $wpdb->posts SET post_date = '{$origin_post[0]->post_date}', post_date_gmt = '{$origin_post[0]->post_date_gmt}', post_content = '{$origin_post[0]->post_content}',
 												post_title = '{$origin_post[0]->post_title}', post_excerpt = '{$origin_post[0]->post_excerpt}', post_modified = '{$origin_post[0]->post_modified}',
 												post_modified_gmt = '{$origin_post[0]->post_modified_gmt}', post_content_filtered = '{$origin_post[0]->post_content_filtered}', post_password = '{$origin_post[0]->post_password}', post_status = 'draft'
  											WHERE ID = {$post_id};";
 				$old_post_result = $wpdb->query( $old_post_sql);
+				if($old_post_result === 0 || $old_post_result === FALSE) contiune;
 
-				// 上書き予約設定を解除する
-				$this->clear_overwrite( $post_id );
+				/*
+				 * postmetaテーブルの上書きを実行
+				 * 記事IDを入れ替える
+				 */
 
-				// postmetaテーブルの上書きを実行
-				$sql = "UPDATE $wpdb->postmeta SET post_id = 0 WHERE post_id = {$hasp_overwrite_post_id};";
-				$result = $wpdb->query( $sql );
-				$sql = "UPDATE $wpdb->postmeta SET post_id = {$hasp_overwrite_post_id} WHERE post_id = {$post_id};";
-				$result = $wpdb->query( $sql );
-				$sql = "UPDATE $wpdb->postmeta SET post_id = {$post_id} WHERE post_id = 0;";
-				$result = $wpdb->query( $sql );
+				// 元記事のメタデータのレコードIDを取得し配列化
+				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$hasp_overwrite_post_id};";
+				$result = $wpdb->get_results( $sql );
+				$overwrite_post_meta_id_list = array();
+				if(is_array($result) && count($result)>0){
+					foreach ( $result as $result_row ) {
+						$overwrite_post_meta_id_list [] = $result_row->meta_id;
+					}
+				}
+				// 上書き記事のメタデータのレコードIDを取得し配列化
+				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$post_id};";
+				$result = $wpdb->get_results( $sql );
+				$post_meta_id_list = array();
+				if(is_array($result) && count($result)>0){
+					foreach ( $result as $result_row ) {
+						$post_meta_id_list [] = $result_row->meta_id;
+					}
+				}
+				// 元記事のメタデータの記事IDを、上書き記事の記事IDに差し替え
+				if(count($overwrite_post_meta_id_list)>0){
+					$where_id_list = implode(',', $overwrite_post_meta_id_list);
+					$sql = "UPDATE $wpdb->postmeta SET post_id = {$post_id} WHERE meta_id IN ({$where_id_list});";
+					$result = $wpdb->query( $sql );
+				}
+				// 上書き記事のメタデータの記事IDを、元記事の記事IDに差し替え
+				if(count($post_meta_id_list)>0){
+					$where_id_list = implode(',', $post_meta_id_list);
+					$sql = "UPDATE $wpdb->postmeta SET post_id = {$hasp_overwrite_post_id} WHERE meta_id IN ({$where_id_list});";
+					$result = $wpdb->query( $sql );
+				}
 
-				// タクソノミーの上書きを実行
-				$sql = "UPDATE $wpdb->term_relationships SET object_id = 0 WHERE object_id = {$hasp_overwrite_post_id};";
-				$result = $wpdb->query( $sql );
-				$sql = "UPDATE $wpdb->term_relationships SET object_id = {$hasp_overwrite_post_id} WHERE object_id = {$post_id};";
-				$result = $wpdb->query( $sql );
-				$sql = "UPDATE $wpdb->term_relationships SET object_id = {$post_id} WHERE object_id = 0;";
-				$result = $wpdb->query( $sql );
+				/*
+				 * タクソノミーの上書きを実行
+				 * 全件削除した後に、記事IDを入れ変えたレコードを登録する
+				 */
 
-				// Generate a revision. 
+				// 元記事のタクソノミーを全件取得
+				$sql = "SELECT * FROM $wpdb->term_relationships WHERE object_id = {$hasp_overwrite_post_id};";
+				$overwrite_post_term = $wpdb->get_results( $sql );
+				// 上書き記事のタクソノミーを全件取得
+				$sql = "SELECT * FROM $wpdb->term_relationships WHERE object_id = {$post_id};";
+				$post_term = $wpdb->get_results( $sql );
+				// 元記事と上書き記事のタクソノミーを全件削除
+				$sql = "DELETE FROM $wpdb->term_relationships WHERE object_id IN ( {$hasp_overwrite_post_id}, {$post_id} );";
+				$delete_result = $wpdb->query( $sql);
+				// 上書き記事のIDで、元記事のタクソノミーを登録
+				if(is_array($overwrite_post_term) && count($overwrite_post_term)>0){
+					foreach ( $overwrite_post_term as $result_row ) {
+						$sql = "INSERT INTO $wpdb->term_relationships (`object_id`, `term_taxonomy_id`, `term_order`) VALUES ({$post_id},{$result_row->term_taxonomy_id},{$result_row->term_order})";
+						$insert_result = $wpdb->query( $sql);
+					}
+				}
+				// 元記事のIDで、上書き記事のタクソノミーを登録
+				if(is_array($post_term) && count($post_term)>0){
+					foreach ( $post_term as $result_row ) {
+						$sql = "INSERT INTO $wpdb->term_relationships (`object_id`, `term_taxonomy_id`, `term_order`) VALUES ({$hasp_overwrite_post_id},{$result_row->term_taxonomy_id},{$result_row->term_order})";
+						$insert_result = $wpdb->query( $sql);
+					}
+				}
+
+				// Generate a revision.
 				wp_save_post_revision( $hasp_overwrite_post_id );
 			}
 		}
