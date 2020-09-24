@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.1.4
+Version: 2.1.5
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -110,7 +110,8 @@ class Hasp
 	function save_future( $new_status, $old_status, $post ) {
 		if ($new_status === 'future' && $old_status !== 'future') {
 			$post_id = $post->ID;
-			do_action('save_post', $post_id, $post);
+			$update = ( $old_status == 'auto-draft' ) ? false : true;
+			do_action('save_post', $post_id, $post, $update);
 			$post_date = $post->post_date;
 			$post_date = date("Y-m-d H:i:00", strtotime($post_date));
 			$post_date_gmt = $post->post_date_gmt;
