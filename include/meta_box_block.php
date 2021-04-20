@@ -39,5 +39,16 @@ $activate_expire_flg = $this->hasp_activate_function_by_posttype($post_type);
 		</select>
 		<span id="hasp_overwrite_error" class="hasp_error_mes" style="display: none"><?php _e( 'Select the post.', 'hasp' ) ?></span>
 		<p><?php _e( 'You can set schedule which overwrites the another post.', 'hasp' ) ?></p>
+		<span id="hasp_overwrite_message" style="display: none"><?php _e( 'Overwritten and updated.', 'hasp' ) ?></span>
+		<span id="hasp_delete_overwrite_message" style="display: none"><?php _e( 'Delete the overwrite reservation publication.', 'hasp' ) ?></span>
+		<span id="hasp_future_to_publish_message" style="display: none"><?php _e( 'It cannot be changed to public while the overwrite reservation public is set.', 'hasp' ) ?></span>
+		<span id="hasp_future_to_publish_message_sub" style="display: none"><?php _e( 'Please change to a draft once.', 'hasp' ) ?></span>
 	</div>
 <?php endif; ?>
+
+<?php
+if ( is_multisite() ) {
+	echo '	<input type="hidden" name="blog_id" value="' . get_current_blog_id() . '">';
+}
+?>
+<input type="hidden" name="gutenberg_page" value="true">

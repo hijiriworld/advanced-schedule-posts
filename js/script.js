@@ -1,4 +1,10 @@
-﻿(function($){
+﻿var reload_check = false;
+var publish_button_click = false;
+var draft_button_click = false;
+var reloader_d_check = false;
+var future_overwrite_enable_check = "off";
+
+(function($){
 
 	if (($('#postbox-container-1').length > 0) || ($('#hasp_meta_box').length > 0)) {
 	    var args = {
@@ -36,15 +42,13 @@
 
 		// Block Editor Publish Button
 		$(document).on('click', '.editor-post-publish-button, .editor-post-publish-panel__toggle', function(e) {
-			if ( '' !== $("[id^=edit-post-post-schedule__toggle-]").text() ) {
+			if ( '' !== $(".edit-post-post-schedule__toggle").text() ) {
 				$('.hasp_error_mes').hide();
 
 				var error = false;
 
-				if ( hasp_expire_enable.attr('checked') ) {
-					var publish_text = $("[id^=edit-post-post-schedule__toggle-]").text();
-
-					publish_text = new Date( wp.data.select( 'core/editor' ).getEditedPostAttribute( 'date' ) );
+				if ( hasp_expire_enable.prop('checked') ) {
+					var publish_text = new Date( wp.data.select( 'core/editor' ).getEditedPostAttribute( 'date' ) );
 					if ( publish_text === undefined ){
 						var pre_publish_date = new Date();
 					}else{
@@ -62,7 +66,7 @@
 						( ( '' + hour ).length < 2 ? '0' :'' ) + hour + ':' +
 						( ( '' + minute ).length < 2 ? '0' :'' ) + minute;
 
-						if ( hasp_expire_date.val() == '' ) {
+					if ( hasp_expire_date.val() == '' ) {
 						$('#hasp_expire_error_1').show();
 						error = true;
 					} else if  ( hasp_expire_date.val() <= publish_date ) {
@@ -71,9 +75,20 @@
 					}
 				}
 
-				if ( hasp_overwrite_enable.attr('checked') && hasp_overwrite_post_id.val() == 0 ) {
+				if ( hasp_overwrite_enable.prop("checked") && hasp_overwrite_post_id.val() == 0 ) {
 					$('#hasp_overwrite_error').show();
 					error = true;
+				}
+				if ( hasp_overwrite_enable.prop("checked") || future_overwrite_enable_check === "on") {
+					const currentPostStatus = wp.data.select( 'core/editor' ).getEditedPostAttribute( 'status' );
+					const postDate = new Date( wp.data.select( 'core/editor' ).getEditedPostAttribute( 'date' ) );
+					const currentDate = new Date();
+					if ( currentPostStatus === "future" && postDate.getTime() <= (currentDate.getTime() + 60) ) {
+						var hasp_future_to_publish_message = $("#hasp_future_to_publish_message").text();
+						var hasp_future_to_publish_message_sub = $("#hasp_future_to_publish_message_sub").text();
+						alert(hasp_future_to_publish_message + "\n" + hasp_future_to_publish_message_sub);
+						error = true;
+					}
 				}
 
 				if ( error ) {
@@ -95,7 +110,19 @@
 			var hour = $('#hh').val();
 			var minute = $('#mn').val();
 
-			if ( hasp_expire_enable.attr('checked') ) {
+			var now = new Date();
+			var y = now.getFullYear();
+			var m = now.getMonth() + 1;
+			var d = now.getDate();
+			var h = now.getHours();
+			var i = now.getMinutes();
+			var mm = ('0' + m).slice(-2);
+			var dd = ('0' + d).slice(-2);
+			var hh = ('0' + h).slice(-2);
+			var ii = ('0' + i).slice(-2);
+			var now_date = y + "-" + mm + "-" + dd + " " + hh + ":" + ii + ":00";
+
+			if ( hasp_expire_enable.prop('checked') ) {
 
 				var publish_date = year + '-' +
 					month + '-' +
@@ -113,9 +140,11 @@
 				}
 			}
 
-			if ( hasp_overwrite_enable.attr('checked') && hasp_overwrite_post_id.val() == 0 ) {
-				$('#hasp_overwrite_error').show();
-				error = true;
+			if ( hasp_overwrite_enable.prop('checked')) {
+				if(hasp_overwrite_post_id.val() == 0 ) {
+					$('#hasp_overwrite_error').show();
+					error = true;
+				}
 			}
 
 			if ( error ) return false;
@@ -190,6 +219,109 @@
 		}).keyup(function(e) {
 			if(e.keyCode == 8 || e.keyCode == 46) {
 				$.datepicker._clearDate(this);
+			}
+		});
+	}
+
+	// For block-editor Submit
+	if ((($('#postbox-container-1').length > 0) || ($('#hasp_meta_box').length > 0)) && ($('.block-editor').length > 0)) {
+		add_publish_button_click = setInterval(function() {
+			$publish_button = $('.editor-post-publish-button');
+			if ($publish_button && !publish_button_click) {
+				$publish_button.on('click', function() {
+					var $hasp_overwrite_post_id = $( '#hasp_overwrite_post_id' ).val();
+					if ( hasp_overwrite_enable.prop("checked") && $hasp_overwrite_post_id != 0 ) {
+						const postDate = new Date( wp.data.select( 'core/editor' ).getEditedPostAttribute( 'date' ) );
+						const currentDate = new Date();
+						if ( postDate.getTime() <= (currentDate.getTime() + 60) ) {
+							if(publish_button_click === false) {
+								publish_button_click = true;
+								var reloader = setInterval(function() {
+									if (reload_check) {return;} else {reload_check = true;}
+									isEditedPostDirty = wp.data.select('core/editor').isEditedPostDirty();
+									postsaving = wp.data.select('core/editor').isSavingPost();
+									autosaving = wp.data.select('core/editor').isAutosavingPost();
+									success = wp.data.select('core/editor').didPostSaveRequestSucceed();
+									console.log('Saving: '+postsaving+' - Autosaving: '+autosaving+' - Success: '+success);
+									if (isEditedPostDirty || autosaving || !success) {
+										// clearInterval(reloader);
+										publish_button_click = false;
+										reload_check = false;
+										return;
+									}
+									const new_currentPostStatus = wp.data.select( 'core/editor' ).getEditedPostAttribute( 'status' );
+									if(new_currentPostStatus !== 'publish') {
+										publish_button_click = false;
+										reload_check = false;
+									} else {
+										wp.data.dispatch( 'core/editor' ).lockPostSaving( 'my-lock' );
+										var message = $('#hasp_overwrite_message').text();
+										alert(message);
+										window.location.href = "post.php?post="+$hasp_overwrite_post_id+"&action=edit";
+									}
+									clearInterval(reloader);
+								}, 1000);
+							}
+						}
+					}
+				});
+			}
+			$switch_to_draft_button = $('.editor-post-switch-to-draft');
+			if ($switch_to_draft_button && !draft_button_click) {
+				$switch_to_draft_button.on('click', function() {
+					const currentPostStatus = wp.data.select( 'core/editor' ).getEditedPostAttribute( 'status' );
+					if(currentPostStatus === 'future') {
+						if ( hasp_overwrite_enable.prop("checked") ) {
+							if(draft_button_click === false) {
+								draft_button_click = true;
+								var reloader_d = setInterval(function() {
+									if (reloader_d_check) {return;} else {reloader_d_check = true;}
+									isEditedPostDirty = wp.data.select('core/editor').isEditedPostDirty();
+									postsaving = wp.data.select('core/editor').isSavingPost();
+									autosaving = wp.data.select('core/editor').isAutosavingPost();
+									success = wp.data.select('core/editor').didPostSaveRequestSucceed();
+									console.log('Saving: '+postsaving+' - Autosaving: '+autosaving+' - Success: '+success);
+									if (isEditedPostDirty || autosaving || !success) {
+										draft_button_click = false;
+										reloader_d_check = false;
+										return;
+									}
+									const new_currentPostStatus = wp.data.select( 'core/editor' ).getEditedPostAttribute( 'status' );
+									if(new_currentPostStatus === 'draft') {
+										value = document.getElementById('hasp_meta_box').value;
+										wp.data.dispatch( 'core/editor' ).lockPostSaving( 'my-lock' );
+										var message = $('#hasp_delete_overwrite_message').text();
+										alert(message);
+										window.location.reload();
+									} else {
+										draft_button_click = false;
+										reloader_d_check = false;
+									}
+									clearInterval(reloader_d);
+								}, 1000);
+							}
+						}
+					}
+				});
+			}
+		}, 500);
+		$hasp_overwrite_enable = $('#hasp_overwrite_enable');
+		$hasp_overwrite_enable.on('click', function() {
+			const new_currentPostStatus = wp.data.select( 'core/editor' ).getEditedPostAttribute( 'status' );
+			if ( new_currentPostStatus === "future" && $(this).prop('checked') == false ) {
+				future_overwrite_enable_check = "on";
+			}
+		})
+	}
+
+	if ($('#hasp_select_objects').length > 0) {
+		var disable_message = $('#disable_message').val();
+		$('input[type="checkbox"]').change(function(){
+			if( $(this).prop('checked') ){
+			}else{
+				if (!confirm(disable_message)) {
+					$(this).prop('checked', true);
+				}
 			}
 		});
 	}

@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.1.5
+Version: 2.1.6
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -58,8 +58,12 @@ class Hasp
 		// Set the reservation time to 00 seconds
 		add_action( 'transition_post_status', array( $this, 'save_future' ), 1 ,6 );
 
+		// overwrite in real time when published
+		add_action( 'save_post', array( $this, 'publish_overwrite'), 10, 2 );
+
 		// to publish - save expire unsave overwrite
 		add_action( 'new_to_publish', array( $this, 'action_to_publish' ) );
+		add_action( 'auto-draft_to_publish', array( $this, 'action_to_publish' ) );
 		add_action( 'publish_to_publish', array( $this, 'action_to_publish' ) );
 		add_action( 'pending_to_publish', array( $this, 'action_to_publish' ) );
 		add_action( 'draft_to_publish', array( $this, 'action_to_publish' ) );
@@ -69,12 +73,23 @@ class Hasp
 
 		// to future - save expire save overwrite
 		add_action( 'new_to_future', array( $this, 'action_to_future' ) );
+		add_action( 'auto-draft_to_future', array( $this, 'action_to_future' ) );
 		add_action( 'publish_to_future', array( $this, 'action_to_future' ) );
 		add_action( 'pending_to_future', array( $this, 'action_to_future' ) );
 		add_action( 'draft_to_future', array( $this, 'action_to_future' ) );
 		add_action( 'future_to_future', array( $this, 'action_to_future' ) );
 		add_action( 'private_to_future', array( $this, 'action_to_future' ) );
 		add_action( 'inherit_to_future', array( $this, 'action_to_future' ) );
+
+		// to draft
+		add_action( 'future_to_draft', array( $this, 'action_to_publish' ) );
+		add_action( 'draft_to_draft', array( $this, 'action_to_publish' ) );
+
+		// clear wp-cron publish_future_post
+		add_action( 'save_post', array( $this, 'clear_cron_schedule'), 13, 2 );
+		// wp-cron action
+		add_action( 'hasp_expire_cron', array( $this, 'cron_execute_trigger' ), 10, 1 );
+		add_action( 'hasp_overwrite_cron', array( $this, 'cron_execute_trigger' ) );
 
 		// to trash - unsave expire unsave overwrite
 		add_action( 'trashed_post', array( $this, 'action_to_trash' ) );
@@ -88,11 +103,14 @@ class Hasp
 		add_action( 'admin_menu', array( $this, 'admin_menu') );
 		add_action( 'admin_init', array( $this, 'update_options') );
 
+		// Message when overwriting and publishing immediately
+		add_action( 'admin_notices', array( $this, 'overerite_admin_notice__success') );
+
 		// do
 		if( !is_admin() )
 		{
-		add_action( 'init', array( $this, 'do_expire' ) );
-		add_action( 'init', array( $this, 'do_overwrite' ) );
+		// add_action( 'init', array( $this, 'do_expire' ) );
+		// add_action( 'init', array( $this, 'do_overwrite' ) );
 		}
 	}
 
@@ -255,7 +273,7 @@ class Hasp
 		wp_enqueue_script( 'jquery-ui-tabs', array('jquery-ui-core') );
 		wp_enqueue_script( 'hasp-jquery-ui-timepicker-addon', HASP_URL.'/js/jquery-ui-timepicker-addon.js', array( 'jquery-ui-datepicker' ), '1.4.5', true );
 
-		// 当ページのURIチェック
+		// URI check of this page
 		$uri_chk = $this->hasp_uri_check();
 		if ( $uri_chk ){
 			wp_enqueue_script( 'hasp-js', HASP_URL.'/js/script.js', array( 'jquery', 'inline-edit-post' ), '2.0', true );
@@ -267,8 +285,8 @@ class Hasp
 	}
 
 	/*
-		関数内容：URIに指定されていキーワードが含まれているかチェックする
-		関数結果：含まれている=>True   含まれていない=>False
+		Function content：Check if the keyword specified in the URI is included
+		Function result： include=>True   Not included=>False
 	*/
 	private function hasp_uri_check(){
 		$patterns = array('/post.php\?post=/','/post-new.php/','/edit.php/','/admin.php\?page=hasp-list/','/admin.php\?page=hasp-settings/');
@@ -337,11 +355,27 @@ class Hasp
 	{
 		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) return false;
 		if ( !isset( $_POST['action'] ) ) return false;
+		if ( isset($_POST['blog_id']) && $_POST['blog_id'] != get_current_blog_id() ) return false;
+		if ( isset($_POST['ID']) && $_POST['ID'] != $post->ID ) return false;
 
 		$post_id = $post->ID;
 
 		$this->save_expire( $post_id );
-		$this->clear_overwrite( $post_id );
+
+		// heartbeat action does not run
+		if($_POST['action'] === "heartbeat") {
+			$this->hasp_log_out("/-- " . __FUNCTION__ . " --");
+			$this->hasp_log_out( $post_id );
+			$this->hasp_log_out("-- " . __FUNCTION__ . " --/");
+			return;
+		}
+
+		if(isset($_POST['hasp_overwrite_enable']) && $_POST['hasp_overwrite_enable'] === "on" && $_POST['post_status'] !== "draft") {
+			// overwrite in real time when published
+			$this->save_overwrite( $post_id );
+		} else {
+			$this->clear_overwrite( $post_id );
+		}
 	}
 
 	function action_to_future( $post )
@@ -375,6 +409,22 @@ class Hasp
 		update_post_meta( $post_id, 'hasp_expire_enable', $hasp_expire_enable );
 		update_post_meta( $post_id, 'hasp_expire_date', $hasp_expire_date );
 
+		// set hasp wp-cron
+		if($hasp_expire_enable > 0) {
+			$timezone = date_default_timezone_get();
+			$this_timezone = get_option('timezone_string');
+			$date = new DateTime( $hasp_expire_date, new DateTimeZone($this_timezone) );
+			if($timezone === "Asia/Tokyo") {
+				$date->setTimezone( new DateTimeZone($this_timezone) );
+			} else {
+				$date->setTimezone( new DateTimeZone($timezone) );
+			}
+			$hasp_expire_date_gmt = $date->format( "Y-m-d H:i:s" );
+			$hook_args = array($post_id);
+			wp_clear_scheduled_hook( 'hasp_expire_cron', $hook_args );
+			wp_schedule_single_event( strtotime( $hasp_expire_date_gmt ), 'hasp_expire_cron', $hook_args );
+		}
+
 		return $post_id;
 	}
 	function save_overwrite( $post_id )
@@ -390,6 +440,19 @@ class Hasp
 		update_post_meta( $post_id, 'hasp_overwrite_enable', $hasp_overwrite_enable );
 		update_post_meta( $post_id, 'hasp_overwrite_post_id', $hasp_overwrite_post_id );
 
+		// set hasp wp-cron
+		$hook_args = array($post_id);
+		wp_clear_scheduled_hook( 'hasp_overwrite_cron', $hook_args );
+		if($hasp_overwrite_enable > 0) {
+			$timezone = date_default_timezone_get();
+			if($timezone === "Asia/Tokyo") {
+				$hasp_overwrite_time = get_the_time( 'U', get_post($post_id) );
+			} else {
+				$hasp_overwrite_time = get_post_time( 'U', true, get_post($post_id) );
+			}
+			wp_schedule_single_event( $hasp_overwrite_time, 'hasp_overwrite_cron', $hook_args );
+		}
+
 		return $post_id;
 	}
 	function clear_expire( $post_id )
@@ -399,6 +462,7 @@ class Hasp
 		if (!in_array($post_type, $post_types)) {
 			return $post_id;
 		}
+		wp_clear_scheduled_hook( 'hasp_expire_cron', array( $post_id ) );
 		update_post_meta( $post_id, 'hasp_expire_enable', '' );
 		update_post_meta( $post_id, 'hasp_expire_date', '' );
 	}
@@ -410,8 +474,13 @@ class Hasp
 		if (!in_array($post_type, $post_types)) {
 			return $post_id;
 		}
-		update_post_meta( $post_id, 'hasp_overwrite_enable', '' );
+		$ret = update_post_meta( $post_id, 'hasp_overwrite_enable', '' );
 		update_post_meta( $post_id, 'hasp_overwrite_post_id', '' );
+		wp_clear_scheduled_hook( 'hasp_overwrite_cron', array( $post_id ) );
+		if($ret !== false) {
+			$this->hasp_log_out("/--- " . __FUNCTION__ . " ---/");
+			$this->hasp_log_out( $post_id );
+		}
 	}
 
 
@@ -436,21 +505,38 @@ class Hasp
 
 		if ( empty( $result ) ) return false;
 
+		$this->hasp_log_out("/--- " . __FUNCTION__ . " ---");
 		foreach ( $result as $post ) {
 
 			$post_id = $post->ID;
+
+			if(!$this->hasp_setting_check($post_id, 2)) continue;
+
+			$hasp_expire_date = get_post_meta($post_id, 'hasp_expire_date', true);
 
 			// publish → draft
 			$overwrite_post = array();
 			$overwrite_post['ID'] = $post_id;
 			$overwrite_post['post_status'] = 'draft';
 			wp_update_post( $overwrite_post );
+			$this->hasp_log_out( $post_id );
 
 			$this->clear_expire( $post_id );
 			$this->trash_hasp_overwrite_post_id ( $post_id );
+			/* Create action hook
+			 * args : $post_id: Draft post_id
+			 *        $hasp_expire_date: Time to draft
+			 */
+			do_action('hasp_do_expire_post', $post_id, $hasp_expire_date);
 		}
+		$this->hasp_log_out("--- " . __FUNCTION__ . " ---/");
+
+		/* Create action hook
+		 * args : $result: post_id array of delete list
+		 */
+		do_action('hasp_do_expire_end', $result);
 	}
-	// 世代更新対応処理（上書き記事がゴミ箱、または、公開終了した時）
+	// Generation update support processing（When the overwritten article is in the trash or when it is no longer published）
 	function trash_hasp_overwrite_post_id ( $post_id ) {
 		global $wpdb;
 		$sql = "SELECT posts.ID
@@ -472,6 +558,7 @@ class Hasp
 			$from_overwrite_post['ID'] = $up_post_id;
 			$from_overwrite_post['post_status'] = 'draft';
 			wp_update_post( $from_overwrite_post );
+			wp_clear_scheduled_hook( 'hasp_overwrite_cron', array( $up_post_id ) );
 		}
 		return;
 	}
@@ -479,17 +566,18 @@ class Hasp
 	{
 		global $wpdb;
 
-		// 上書き後の記事データを取得
+		// Get article data to overwrite
 		$sql = "SELECT
 					posts.ID, posts.post_date, posts.post_date_gmt, posts.post_content,
 					posts.post_title, posts.post_excerpt, posts.post_modified, posts.post_modified_gmt,
 					posts.post_content_filtered, posts.post_password
 			FROM $wpdb->posts AS posts
 			INNER JOIN $wpdb->postmeta AS postmeta1 ON ( posts.ID = postmeta1.post_id )
-			WHERE posts.post_status = 'publish'
+			WHERE (posts.post_status = 'publish' OR posts.post_status = 'future')
 			AND ( postmeta1.meta_key = 'hasp_overwrite_enable' AND postmeta1.meta_value = '1' )
 			AND posts.post_date <= '".current_time( 'mysql' )."'
 			GROUP BY posts.ID
+			ORDER BY posts.post_date ASC
 		";
 		$result = $wpdb->get_results( $sql );
 
@@ -498,6 +586,8 @@ class Hasp
 		foreach( $result as $post ) {
 			$post_id = $post->ID;
 
+			if(!$this->hasp_setting_check($post_id, 1)) continue;
+
 			$hasp_overwrite_enable  = get_post_meta( $post_id, 'hasp_overwrite_enable', true );
 			$hasp_overwrite_post_id = get_post_meta( $post_id, 'hasp_overwrite_post_id', true );
 
@@ -505,7 +595,7 @@ class Hasp
 
 				//$overwrite_post_name = get_post_field( 'post_name', $hasp_overwrite_post_id );
 
-				// 上書き前の記事データを取得
+				// Get article data before overwriting
 				$sql = "SELECT
 							posts.ID, posts.post_date, posts.post_date_gmt, posts.post_content,
 							posts.post_title, posts.post_excerpt, posts.post_modified, posts.post_modified_gmt,
@@ -518,77 +608,15 @@ class Hasp
 				";
 				$origin_post = $wpdb->get_results( $sql );
 				if(!is_array($origin_post) || count($origin_post) !== 1) continue;
-
-				// 上書き予約設定を解除する
+				// Cancel the overwrite reservation setting
 				$this->clear_overwrite( $post_id );
 
-				// postテーブルの上書きを実行
-				$values = array(
-					$post->post_date,
-					$post->post_date_gmt,
-					$post->post_content,
-					$post->post_title,
-					$post->post_excerpt,
-					$post->post_modified,
-					$post->post_modified_gmt,
-					$post->post_content_filtered,
-					$post->post_password,
-					$hasp_overwrite_post_id
-				);
-				$new_post_sql = "UPDATE $wpdb->posts SET 
-						post_date = %s, 
-						post_date_gmt = %s, 
-						post_content = %s,
-						post_title = %s, 
-						post_excerpt = %s, 
-						post_modified = %s,
-						post_modified_gmt = %s, 
-						post_content_filtered = %s, 
-						post_password = %s, 
-						post_status = 'publish'
-					WHERE ID = %d;";
-				$query = $wpdb->prepare($new_post_sql, $values);
-				$new_post_result = $wpdb->query( $query );
-				if($new_post_result === 0 || $new_post_result === FALSE) {
-					continue;
-				}
-
-				$values = array(
-					$origin_post[0]->post_date,
-					$origin_post[0]->post_date_gmt,
-					$origin_post[0]->post_content,
-					$origin_post[0]->post_title,
-					$origin_post[0]->post_excerpt,
-					$origin_post[0]->post_modified,
-					$origin_post[0]->post_modified_gmt,
-					$origin_post[0]->post_content_filtered,
-					$origin_post[0]->post_password,
-					$post_id
-				);
-				$old_post_sql = "UPDATE $wpdb->posts SET
-						post_date = %s, 
-						post_date_gmt = %s, 
-						post_content = %s,
-						post_title = %s, 
-						post_excerpt = %s, 
-						post_modified = %s,
-						post_modified_gmt = %s, 
-						post_content_filtered = %s, 
-						post_password = %s, 
-						post_status = 'draft'
-					WHERE ID = %d;";
-				$query = $wpdb->prepare($old_post_sql, $values);
-				$old_post_result = $wpdb->query( $query );
-				if($old_post_result === 0 || $old_post_result === FALSE) {
-					continue;
-				}
-
 				/*
-				 * postmetaテーブルの上書きを実行
-				 * 記事IDを入れ替える
+				 * Overwrite postmeta table
+				 * Swap article IDs
 				 */
 
-				// 元記事のメタデータのレコードIDを取得し配列化
+				// Get the record ID of the metadata of the original article and arrange it
 				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$hasp_overwrite_post_id};";
 				$result = $wpdb->get_results( $sql );
 				$overwrite_post_meta_id_list = array();
@@ -597,7 +625,7 @@ class Hasp
 						$overwrite_post_meta_id_list [] = $result_row->meta_id;
 					}
 				}
-				// 上書き記事のメタデータのレコードIDを取得し配列化
+				// Get the record ID of the metadata of the overwrite article and arrange it
 				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$post_id};";
 				$result = $wpdb->get_results( $sql );
 				$post_meta_id_list = array();
@@ -606,7 +634,7 @@ class Hasp
 						$post_meta_id_list [] = $result_row->meta_id;
 					}
 				}
-				// 元記事のメタデータの記事IDを、上書き記事の記事IDに差し替え
+				// Replace the article ID in the metadata of the original article with the article ID of the overwritten article
 				if(count($overwrite_post_meta_id_list)>0){
 					$where_id_list = implode(',', $overwrite_post_meta_id_list);
 					$values = array($post_id);
@@ -616,7 +644,7 @@ class Hasp
 					$query = $wpdb->prepare($sql, $values);
 					$result = $wpdb->query( $query );
 				}
-				// 上書き記事のメタデータの記事IDを、元記事の記事IDに差し替え
+				// Replace the article ID in the metadata of the overwritten article with the article ID of the original article
 				if(count($post_meta_id_list)>0){
 					$where_id_list = implode(',', $post_meta_id_list);
 					$values = array($hasp_overwrite_post_id);
@@ -628,22 +656,22 @@ class Hasp
 				}
 
 				/*
-				 * タクソノミーの上書きを実行
-				 * 全件削除した後に、記事IDを入れ変えたレコードを登録する
+				 * Perform taxonomy overwrite
+				 * After deleting all records, register the record with the article ID replaced.
 				 */
 
-				// 元記事のタクソノミーを全件取得
+				// Get all taxonomies of the original article
 				$sql = "SELECT * FROM $wpdb->term_relationships WHERE object_id = {$hasp_overwrite_post_id};";
 				$overwrite_post_term = $wpdb->get_results( $sql );
-				// 上書き記事のタクソノミーを全件取得
+				// Get all taxonomies of overwritten articles
 				$sql = "SELECT * FROM $wpdb->term_relationships WHERE object_id = {$post_id};";
 				$post_term = $wpdb->get_results( $sql );
-				// 元記事と上書き記事のタクソノミーを全件削除
+				// Deleted all taxonomies of original articles and overwritten articles
 				$values = array($hasp_overwrite_post_id, $post_id);
 				$sql = "DELETE FROM $wpdb->term_relationships WHERE object_id IN ( %d, %d );";
 				$query = $wpdb->prepare($sql, $values);
 				$delete_result = $wpdb->query( $query );
-				// 上書き記事のIDで、元記事のタクソノミーを登録
+				// Register the taxonomy of the original article with the ID of the overwritten article
 				if(is_array($overwrite_post_term) && count($overwrite_post_term)>0){
 					foreach ( $overwrite_post_term as $result_row ) {
 						$values = array($post_id, $result_row->term_taxonomy_id, $result_row->term_order);
@@ -653,7 +681,7 @@ class Hasp
 						$insert_result = $wpdb->query( $query );
 					}
 				}
-				// 元記事のIDで、上書き記事のタクソノミーを登録
+				// Register the taxonomy of the overwritten article with the ID of the original article
 				if(is_array($post_term) && count($post_term)>0){
 					foreach ( $post_term as $result_row ) {
 						$values = array($hasp_overwrite_post_id, $result_row->term_taxonomy_id, $result_row->term_order);
@@ -664,10 +692,58 @@ class Hasp
 					}
 				}
 
+				// Overwrite on post table
+				$origin_post_value = array(
+					'ID' => $post_id,
+					'post_date' => $origin_post[0]->post_date,
+					'post_date_gmt' => $origin_post[0]->post_date_gmt,
+					'post_content' => $origin_post[0]->post_content,
+					'post_title' => $origin_post[0]->post_title,
+					'post_excerpt' => $origin_post[0]->post_excerpt,
+					'post_modified' => $origin_post[0]->post_modified,
+					'post_modified_gmt' => $origin_post[0]->post_modified_gmt,
+					'post_content_filtered' => $origin_post[0]->post_content_filtered,
+					'post_password' => $origin_post[0]->post_password,
+					'post_status' => 'draft',
+				);
+				wp_update_post( $origin_post_value );
+				$this->clear_expire( $post_id );
+				$this->hasp_log_out("/--- " . __FUNCTION__ . " ---");
+				$this->hasp_log_out( $origin_post_value );
+				$this->hasp_log_out(" to ");
+
+				$post_value = array(
+					'ID' => $hasp_overwrite_post_id,
+					'post_date' => $post->post_date,
+					'post_date_gmt' => $post->post_date_gmt,
+					'post_content' => $post->post_content,
+					'post_title' => $post->post_title,
+					'post_excerpt' => $post->post_excerpt,
+					'post_modified' => $post->post_modified,
+					'post_modified_gmt' => $post->post_modified_gmt,
+					'post_content_filtered' => $post->post_content_filtered,
+					'post_password' => $post->post_password,
+					'post_status' => 'publish',
+				);
+				wp_update_post( $post_value );
+				$this->hasp_log_out( $post_value );
+				$this->hasp_log_out("--- " . __FUNCTION__ . " ---/\n");
+
 				// Generate a revision.
 				wp_save_post_revision( $hasp_overwrite_post_id );
+				/* Create action hook 
+				 * args : $hasp_overwrite_post_id: Publish post_id
+				 *        $post->post_date: Publication time
+				 *        $post_id: Draft post_id
+				 */
+				do_action('hasp_do_overwrite_post', $hasp_overwrite_post_id, $post->post_date, $post_id);
 			}
 		}
+
+		/* Create action hook 
+		 * args : $result: Overwrite post_id array
+		 */
+		do_action('hasp_do_overwrite_end', $result);
 	}
 
 	/*
@@ -787,7 +863,7 @@ class Hasp
 			INNER JOIN $wpdb->postmeta AS postmeta1 ON ( posts.ID = postmeta1.post_id )
 			INNER JOIN $wpdb->postmeta AS postmeta2 ON ( posts.ID = postmeta2.post_id )
 			WHERE (postmeta1.meta_key = 'hasp_expire_enable' AND postmeta1.meta_value = 1)
-			AND (postmeta2.meta_key = 'hasp_expire_date' AND postmeta2.meta_value > now() )
+			AND (postmeta2.meta_key = 'hasp_expire_date' AND postmeta2.meta_value IS NOT NULL )
 			UNION ALL
 			SELECT posts.ID as post_id,posts.post_title, posts.post_status,posts.post_type, 30 as st,
 			null as post_date_publish, null as post_date_end, posts.post_date as post_date_overwrite, posts1.post_title as post_title_overwrite , posts1.post_status as post_status_overwrite, postmeta1.meta_value as post_id_overwrite
@@ -926,6 +1002,8 @@ class Hasp
 		}
 		$input_options = array();
 		$input_options['objects'] = isset( $_objects ) ? $_objects : '';
+		$input_options['activate_expire'] = isset( $_objects ) ? $_objects : '';
+		$input_options['activate_overwrite'] = isset( $_objects ) ? $_objects : '';
 		add_option('hasp_options', $input_options, '', 'no');
 		add_option('hasp_activation', 1, '', 'no');
 	}
@@ -984,6 +1062,157 @@ class Hasp
 			return true;
 		}
 	}
-}
 
+	/*
+	 * clear wp-cron publish_future_post schedule
+	 */
+	function clear_cron_schedule( $post_id, $post ) {
+		// Exclude if not a public reservation
+		if ( 'future' !== $post->post_status ) {
+			return;
+		}
+
+		// Exclude post types that are not set to overwrite public reservation
+		$post_type = get_post_type( $post_id );
+		$post_types = $this->get_hasp_options_objects();
+		if (!in_array($post_type, $post_types)) {
+			return;
+		}
+
+		// Exclude if it is not overwritten
+		$hasp_overwrite_enable = get_post_meta($post_id, "hasp_overwrite_enable", true);
+		if(empty($hasp_overwrite_enable)) {
+			return;
+		}
+
+		wp_clear_scheduled_hook( 'publish_future_post', array( $post_id ) );
+	}
+
+	/*
+	 * hasp wp-cron execute
+	 */
+	function cron_execute_trigger($arg1) {
+		$this->hasp_log_out("/--- " . __FUNCTION__ . " ---/");
+		$this->hasp_log_out($arg1);
+		$this->do_overwrite();
+		$this->do_expire();
+	}
+
+	/*
+	 * Publish overwrites in real time
+	 */
+	function publish_overwrite($post_ID, $post) {
+		if(empty($_POST)) return;
+		$hasp_overwrite_enable = get_post_meta($post_ID, "hasp_overwrite_enable", true);
+		$hasp_overwrite_post_id = get_post_meta($post_ID, "hasp_overwrite_post_id", true);
+		if(empty($hasp_overwrite_enable)) return;
+		if ($post->post_status === 'publish' && $hasp_overwrite_enable === '1') {
+			remove_action( 'save_post', array( $this, 'publish_overwrite') );
+			$_POST['hasp_overwrite_enable'] = "";
+			if(isset($_POST['gutenberg_page']) && $_POST['gutenberg_page'] === "true") {
+				$this->do_overwrite();
+			} else {
+				set_theme_mod( '_is_overerite_update', $hasp_overwrite_post_id );
+				$this->do_overwrite();
+				wp_safe_redirect(admin_url("post.php?post=$hasp_overwrite_post_id&action=edit"));
+			}
+			exit();
+		}
+	}
+
+	/*
+	 * Message when overwriting and publishing immediately
+	 */
+	function overerite_admin_notice__success() {
+		global $post;
+		if ( isset($post) && false !== get_theme_mod( '_is_overerite_update' ) ) {
+			$p_id = get_theme_mod( '_is_overerite_update' );
+			if($p_id === $post->ID) {
+				remove_theme_mod( '_is_overerite_update');
+				$message = '<div class="notice notice-success is-dismissible">
+					<p>' . __('Overwritten and updated.', 'hasp') . '</p>
+				</div>';
+				echo $message;
+			}
+		}
+	}
+
+	/*
+	 * ASP Setting posttype check
+	 */
+	function hasp_setting_check($post_id, $hasp_type) {
+		$post = get_post( $post_id );
+		$post_type = $post->post_type;
+		$hasp_options = get_option( 'hasp_options' );
+
+		$activate = false;
+		if ( in_array( $post_type , $hasp_options['objects'] )){
+			switch($hasp_type){
+				case 1:
+					if(array_key_exists('activate_overwrite',$hasp_options)){
+						if ( in_array( $post_type , $hasp_options['activate_overwrite'] )) $activate = true;
+					} else {
+						$activate = true;
+					}
+					break;
+				case 2:
+					if(array_key_exists('activate_expire',$hasp_options)){
+						if ( in_array( $post_type , $hasp_options['activate_expire'] )) $activate = true;
+					} else {
+						$activate = true;
+					}
+					break;
+			}
+		}
+		if ( !$activate ) {
+			$this->hasp_log_out( "Canceled due to HASP settings. ID: " . $post_id );
+		}
+		return $activate;
+	}
+
+	/*
+	* Log output
+	* If you place the /logs/ directory directly under the plugin directory, 
+	*  logs will be created for each date.
+	*/
+	function hasp_log_out($message) {
+		$log_dir = __DIR__ . "/logs/";
+		if( !file_exists( $log_dir ) ) return;
+		$blog_id = "";
+		if(is_multisite()) {
+			$blog_id = "blog_id: " . get_current_blog_id() . ":";
+		}
+
+		$timezone = date_default_timezone_get();
+		if($timezone === "Asia/Tokyo") {
+			$log_datetime = date('Y-m-d H:i:s');
+			$log_date = date( "Ymd" );
+		} else {
+			$log_datetime = date_i18n('Y-m-d H:i:s');
+			$log_date = date_i18n( "Ymd" );
+		}
+
+		$log_filename = $log_dir . $log_date . '.log';
+		if(!file_exists($log_filename)) {
+			touch($log_filename);
+			chmod($log_filename, 0666);
+		}
+
+		$log_message = null;
+		if(is_array($message)) {
+			if(isset($message['ID']) && isset($message['post_title'])) {
+				$log_message = sprintf("%s:%s%s\n", $log_datetime, $blog_id, print_r("ID: {$message['ID']}", true));
+				$log_message .= sprintf("%s:%s%s\n", $log_datetime, $blog_id, print_r("SET post_title: {$message['post_title']}", true));
+			} elseif(count($message) == 1) {
+				$log_message = sprintf("%s:%s%s\n", $log_datetime, $blog_id, print_r("ID: {$message[0]->ID}", true));
+				$log_message .= sprintf("%s:%s%s\n", $log_datetime, $blog_id, print_r("SET post_title: {$message[0]->post_title}", true));
+			} else {
+				$log_message = sprintf("%s:%s%s\n", $log_datetime, $blog_id, print_r($message, true));
+			}
+		} else {
+			$log_message = sprintf("%s:%s%s\n", $log_datetime, $blog_id, print_r($message, true));
+		}
+		error_log($log_message, 3, $log_filename);
+	}
+}
 ?>
