@@ -15,6 +15,9 @@
 	<form method="post">
 	<?php if ( function_exists( 'wp_nonce_field' ) ) wp_nonce_field( 'nonce_hasp' ); ?>
 
+	<?php echo "<input type='hidden' id='disable_message' value='" . __( 'If you disable this setting, reserved posts may be posted by other plugins, so please check if there are any posts that will be overwritten or expired.', 'hasp' )
+		. "\n" . __('Do you want to uncheck it?', 'hasp' ) . "'>" ?>
+
 	  <div id="hasp_select_objects">
 		<table class="wp-list-table widefat fixed striped">
 		  <thead>
@@ -48,7 +51,7 @@
 				  if ( in_array( $post_type->name, $hasp_activate_expire ) ) {
 					$checked_msg = ' checked="checked"';
 				  }
-				} elseif( !$hasp_activate_expire_setting ){
+				} elseif( (isset( $hasp_objects ) && is_array( $hasp_objects ) && in_array( $post_type->name, $hasp_objects )) && !$hasp_activate_expire_setting ){
 				  $checked_msg = ' checked="checked"';
 				}
 				?>
@@ -61,7 +64,7 @@
 				  if ( in_array( $post_type->name, $hasp_activate_overwrite ) ) {
 					$checked_msg = ' checked="checked"';
 				  }
-				} elseif( !$hasp_activate_expire_setting ){
+				} elseif( (isset( $hasp_objects ) && is_array( $hasp_objects ) && in_array( $post_type->name, $hasp_objects )) && !$hasp_activate_expire_setting ){
 				  $checked_msg = ' checked="checked"';
 				}
 				?>

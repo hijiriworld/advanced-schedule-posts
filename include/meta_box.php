@@ -39,7 +39,15 @@ $activate_expire_flg = $this->hasp_activate_function_by_posttype($post_type);
 				<?php endforeach; ?>
 			</select>
 			<span id="hasp_overwrite_error" class="hasp_error_mes" style="display: none"><?php _e( 'Select the post.', 'hasp' ) ?></span>
+			<span id="hasp_overwrite_error2" class="hasp_error_mes" style="display: none"><?php _e( 'Input future datetime.', 'hasp' ) ?></span>
 			<p><?php _e( 'You can set schedule which overwrites the another post.', 'hasp' ) ?></p>
 		</div>
 	<?php endif; ?>
+
+	<?php
+		if ( is_multisite() ) {
+			echo '	<input type="hidden" name="blog_id" value="' . get_current_blog_id() . '">';
+		}
+	?>
+
 </div>
