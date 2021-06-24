@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.1.6
+Version: 2.1.7
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -465,6 +465,9 @@ class Hasp
 		wp_clear_scheduled_hook( 'hasp_expire_cron', array( $post_id ) );
 		update_post_meta( $post_id, 'hasp_expire_enable', '' );
 		update_post_meta( $post_id, 'hasp_expire_date', '' );
+		$this->hasp_log_out("/--- " . __FUNCTION__ . " ---");
+		$this->hasp_log_out( $post_id );
+		$this->hasp_log_out("--- " . __FUNCTION__ . " ---/");
 	}
 
 	function clear_overwrite( $post_id )
@@ -529,7 +532,7 @@ class Hasp
 			 */
 			do_action('hasp_do_expire_post', $post_id, $hasp_expire_date);
 		}
-		$this->hasp_log_out("--- " . __FUNCTION__ . " ---/");
+		$this->hasp_log_out("--- " . __FUNCTION__ . " ---/\n");
 
 		/* Create action hook
 		 * args : $result: post_id array of delete list
@@ -608,8 +611,6 @@ class Hasp
 				";
 				$origin_post = $wpdb->get_results( $sql );
 				if(!is_array($origin_post) || count($origin_post) !== 1) continue;
-				// Cancel the overwrite reservation setting
-				$this->clear_overwrite( $post_id );
 
 				/*
 				 * Overwrite postmeta table
@@ -617,7 +618,7 @@ class Hasp
 				 */
 
 				// Get the record ID of the metadata of the original article and arrange it
-				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$hasp_overwrite_post_id};";
+				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$hasp_overwrite_post_id} AND meta_key NOT LIKE 'hasp_%';";
 				$result = $wpdb->get_results( $sql );
 				$overwrite_post_meta_id_list = array();
 				if(is_array($result) && count($result)>0){
@@ -626,7 +627,7 @@ class Hasp
 					}
 				}
 				// Get the record ID of the metadata of the overwrite article and arrange it
-				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$post_id};";
+				$sql = "SELECT meta_id FROM $wpdb->postmeta WHERE post_id = {$post_id} AND meta_key NOT LIKE 'hasp_%';";
 				$result = $wpdb->get_results( $sql );
 				$post_meta_id_list = array();
 				if(is_array($result) && count($result)>0){
@@ -634,6 +635,24 @@ class Hasp
 						$post_meta_id_list [] = $result_row->meta_id;
 					}
 				}
+				$post_hasp_expire_enable = get_post_meta($post_id, "hasp_expire_enable", true);
+				$post_hasp_expire_date = get_post_meta($post_id, "hasp_expire_date", true);
+				if($post_hasp_expire_enable === '1' && !empty($post_hasp_expire_date)) {
+					$meta_input = array(
+						'hasp_overwrite_enable' => '',
+						'hasp_overwrite_post_id' => '',
+						'hasp_expire_enable' => 1,
+						'hasp_expire_date' => $post_hasp_expire_date,
+					);
+					$this->hasp_log_out( '/--- expire date update ---/' );
+					$this->hasp_log_out( $post_hasp_expire_date );
+				} else {
+					$meta_input = array(
+						'hasp_overwrite_enable' => '',
+						'hasp_overwrite_post_id' => '',
+					);
+				}
+
 				// Replace the article ID in the metadata of the original article with the article ID of the overwritten article
 				if(count($overwrite_post_meta_id_list)>0){
 					$where_id_list = implode(',', $overwrite_post_meta_id_list);
@@ -705,6 +724,10 @@ class Hasp
 					'post_content_filtered' => $origin_post[0]->post_content_filtered,
 					'post_password' => $origin_post[0]->post_password,
 					'post_status' => 'draft',
+					'meta_input' => array(
+						'hasp_overwrite_enable' => '',
+						'hasp_overwrite_post_id' => ''
+					),
 				);
 				wp_update_post( $origin_post_value );
 				$this->clear_expire( $post_id );
@@ -724,6 +747,7 @@ class Hasp
 					'post_content_filtered' => $post->post_content_filtered,
 					'post_password' => $post->post_password,
 					'post_status' => 'publish',
+					'meta_input' => $meta_input,
 				);
 				wp_update_post( $post_value );
 				$this->hasp_log_out( $post_value );
