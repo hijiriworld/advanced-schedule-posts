@@ -2,8 +2,8 @@
 Contributors: hijiri
 Tags: schedule, post, admin
 Requires at least: 3.5.0
-Tested up to: 5.7.2
-Stable tag: 2.1.7
+Tested up to: 5.8
+Stable tag: 2.1.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,6 +40,10 @@ This Plugin published on <a href="https://github.com/hijiriworld/advanced-schedu
 6. Guternberg editor
 
 == Changelog ==
+
+= 2.1.8 =
+
+* Bug Fix.
 
 = 2.1.7 =
 

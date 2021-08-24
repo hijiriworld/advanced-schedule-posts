@@ -3,7 +3,7 @@
 Plugin Name: Advanced Schedule Posts
 Plugin URI:
 Description: Allows you to set datetime of expiration and to set schedule which overwrites the another post.
-Version: 2.1.7
+Version: 2.1.8
 Author: hijiri
 Author URI: http://hijiriworld.com/web/
 License: GPLv2 or later
@@ -34,15 +34,21 @@ function hasp_deactivation()
 				switch_to_blog( $blog_id );
 				delete_option( 'hasp_activation' );
 				delete_option( 'hasp_options' );
+				delete_option( 'hasp_cron_started' );
+				$_rtn = wp_clear_scheduled_hook( 'hasp_cron_execute' );
 			}
 			switch_to_blog( $curr_blog );
 		} else {
 			delete_option( 'hasp_activation' );
 			delete_option( 'hasp_options' );
+			delete_option( 'hasp_cron_started' );
+			$_rtn = wp_clear_scheduled_hook( 'hasp_cron_execute' );
 		}
 	} else {
 		delete_option( 'hasp_activation' );
 		delete_option( 'hasp_options' );
+		delete_option( 'hasp_cron_started' );
+		$_rtn = wp_clear_scheduled_hook( 'hasp_cron_execute' );
 	}
 }
 
@@ -55,6 +61,9 @@ class Hasp
 {
 	function __construct()
 	{
+		// Add a new wp-cron schedule for ASP
+		add_filter('cron_schedules', array( $this, 'hasp_cron_schedules' ));
+
 		// Set the reservation time to 00 seconds
 		add_action( 'transition_post_status', array( $this, 'save_future' ), 1 ,6 );
 
@@ -90,6 +99,7 @@ class Hasp
 		// wp-cron action
 		add_action( 'hasp_expire_cron', array( $this, 'cron_execute_trigger' ), 10, 1 );
 		add_action( 'hasp_overwrite_cron', array( $this, 'cron_execute_trigger' ) );
+		add_action( 'hasp_cron_execute', array( $this, 'cron_execute_trigger' ), 10, 1 );
 
 		// to trash - unsave expire unsave overwrite
 		add_action( 'trashed_post', array( $this, 'action_to_trash' ) );
@@ -111,6 +121,7 @@ class Hasp
 		{
 		// add_action( 'init', array( $this, 'do_expire' ) );
 		// add_action( 'init', array( $this, 'do_overwrite' ) );
+			add_action( 'init', array( $this, 'cron_start' ) );
 		}
 	}
 
@@ -413,8 +424,23 @@ class Hasp
 		if($hasp_expire_enable > 0) {
 			$timezone = date_default_timezone_get();
 			$this_timezone = get_option('timezone_string');
-			$date = new DateTime( $hasp_expire_date, new DateTimeZone($this_timezone) );
+			if(empty($this_timezone)) {
+				$gmt_offset = get_option('gmt_offset');
+				if(intval($gmt_offset) > 0) {
+					$gmt_offset = "-" . intval($gmt_offset);
+				} else {
+					$gmt_offset = "+" . abs(intval($gmt_offset));
+				}
+				$date = new DateTime( $hasp_expire_date );
+				$date->modify($gmt_offset . ' hours');
+			} else {
+				$date = new DateTime( $hasp_expire_date, new DateTimeZone($this_timezone) );
+			}
 			if($timezone === "Asia/Tokyo") {
+				if(empty($this_timezone)) {
+					$date = new DateTime( $hasp_expire_date );
+					$this_timezone = "Asia/Tokyo";
+				}
 				$date->setTimezone( new DateTimeZone($this_timezone) );
 			} else {
 				$date->setTimezone( new DateTimeZone($timezone) );
@@ -776,8 +802,11 @@ class Hasp
 
 	function admin_menu()
 	{
-		if ( !get_option( 'hasp_activation' ) ) $this->hasp_activation();
-
+		if ( !get_option( 'hasp_activation' ) ) {
+			$this->hasp_activation();
+		} elseif ( get_option( 'hasp_activation' ) ) {
+			$this->cron_start(__FUNCTION__);
+		}
 		global $_wp_last_object_menu;
 		$_wp_last_object_menu++;
 
@@ -888,6 +917,7 @@ class Hasp
 			INNER JOIN $wpdb->postmeta AS postmeta2 ON ( posts.ID = postmeta2.post_id )
 			WHERE (postmeta1.meta_key = 'hasp_expire_enable' AND postmeta1.meta_value = 1)
 			AND (postmeta2.meta_key = 'hasp_expire_date' AND postmeta2.meta_value IS NOT NULL )
+			AND posts.post_status <> 'draft'
 			UNION ALL
 			SELECT posts.ID as post_id,posts.post_title, posts.post_status,posts.post_type, 30 as st,
 			null as post_date_publish, null as post_date_end, posts.post_date as post_date_overwrite, posts1.post_title as post_title_overwrite , posts1.post_status as post_status_overwrite, postmeta1.meta_value as post_id_overwrite
@@ -1030,6 +1060,7 @@ class Hasp
 		$input_options['activate_overwrite'] = isset( $_objects ) ? $_objects : '';
 		add_option('hasp_options', $input_options, '', 'no');
 		add_option('hasp_activation', 1, '', 'no');
+		$this->cron_start(__FUNCTION__);
 	}
 
 	/**
@@ -1115,9 +1146,11 @@ class Hasp
 	/*
 	 * hasp wp-cron execute
 	 */
-	function cron_execute_trigger($arg1) {
-		$this->hasp_log_out("/--- " . __FUNCTION__ . " ---/");
-		$this->hasp_log_out($arg1);
+	function cron_execute_trigger($arg1=null) {
+		if(!empty($arg1)) {
+			$this->hasp_log_out("/--- " . __FUNCTION__ . " ---/");
+			$this->hasp_log_out($arg1);
+		}
 		$this->do_overwrite();
 		$this->do_expire();
 	}
@@ -1192,6 +1225,31 @@ class Hasp
 			$this->hasp_log_out( "Canceled due to HASP settings. ID: " . $post_id );
 		}
 		return $activate;
+	}
+
+	/*
+	 * Add wp-cron for ASP
+	 */
+	function cron_start($func=null) {
+		if ( !get_option( 'hasp_activation' ) ) return;
+		if ( !get_option( 'hasp_cron_started' ) || !wp_get_schedule( 'hasp_cron_execute' ) ) {
+			wp_schedule_event( strtotime(date("Y-m-d H:i:00", strtotime("+1 minutes"))), 'per_minute', 'hasp_cron_execute' );
+			update_option( 'hasp_cron_started', 1,'no' );
+			$this->hasp_log_out(__FUNCTION__ . " " . $func);
+		}
+		return;
+	}
+
+	/*
+	 * Add a new schedule for wp-cron
+	 */
+	function hasp_cron_schedules($schedules){
+		if(!isset($schedules["per_minute"])){
+			$schedules["per_minute"] = array(
+				'interval' => 60,
+				'display' => __('Once every minutes'));
+		}
+		return $schedules;
 	}
 
 	/*
